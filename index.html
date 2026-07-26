@@ -239,7 +239,7 @@
       messages.push({ role: 'assistant', content: 'Compris, je garde ce site en mémoire pour le modifier selon tes prochaines instructions.' });
     }
     messages.push({ role: 'user', content: userPrompt });
-    const res = await fetch('https://text.pollinations.ai/openai', {
+    const res = await fetch('https://gen.pollinations.ai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: 'mistral', messages: messages, seed: Math.floor(Math.random() * 100000) })
