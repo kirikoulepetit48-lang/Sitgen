@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agence Immobilière Lubumbashi • Biens à vendre</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --blue: #1e61b5;
+      --blue-dark: #135a98;
+      --blue-soft: #eaf4ff;
+      --white: #ffffff;
+      --text: #203046;
+      --muted: #6b7a93;
+      --bg: #f7fbff;
+      --card: #ffffff;
+      --border: #e6eef8;
+      --shadow: 0 8px 20px rgba(15, 46, 95, 0.08);
+    }
+
+    *{box-sizing:border-box}
+    html, body{margin:0;padding:0}
+    body{
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color: var(--text);
+      background: #f7fbff;
+      line-height: 1.6;
+    }
+
+    /* Header / Navigation */
+    .site-header{
+      position: sticky; top:0; z-index: 1000;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-inner{
+      max-width: 1200px; margin: 0 auto; padding: 14px 20px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      font-weight: 700; color: var(--blue);
+      text-decoration: none; letter-spacing:.3px;
+    }
+    .brand .dot{
+      width:12px; height:12px; border-radius:50%;
+      background: var(--blue);
+      box-shadow: 0 0 0 4px rgba(30,97,181,.15);
+    }
+    .menu-toggle{
+      display:none; background: none; border: none; font-size: 16px;
+      padding: 8px 12px; border-radius:6px; cursor: pointer;
+      color: var(--blue); font-weight:600;
+    }
+    .nav-links{ list-style:none; display:flex; gap: 14px; padding:0; margin:0; }
+    .nav-links a{
+      text-decoration:none; color: var(--text);
+      padding: 8px 12px; border-radius:6px;
+      transition: background .2s;
+    }
+    .nav-links a:hover{ background: #f0f6ff; color: var(--blue); }
+
+    @media (max-width: 900px){
+      .menu-toggle{ display:inline-block; }
+      .nav-links{ position:absolute; top:60px; right:20px; left:20px;
+                  flex-direction: column; padding:12px; background:#fff;
+                  border:1px solid var(--border); border-radius:10px;
+                  display:none; box-shadow: var(--shadow);
+      }
+      .nav-links.open{ display:flex; }
+    }
+
+    /* Sections */
+    .container{ max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+    /* Hero */
+    .hero{
+      display:flex; align-items:center; justify-content:center;
+      min-height: 58vh; padding: 40px 0;
+      background: linear-gradient(135deg, #ebf4ff 0%, #ffffff 60%);
+    }
+    .hero-content{ display:flex; flex-direction:column; align-items:flex-start; gap:18px; max-width: 900px; }
+    .hero h1{ font-size: 2.4rem; margin:0; color: var(--blue); }
+    .hero p{ font-size: 1.05rem; color: var(--muted); max-width: 60ch; }
+    .cta-row{ display:flex; gap:12px; flex-wrap: wrap; }
+
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding: 12px 16px; border-radius:8px; text-decoration:none;
+      font-weight: 700; border: none; cursor: pointer;
+    }
+    .btn.primary{ background: var(--blue); color: #fff; }
+    .btn.secondary{ background: #fff; color: var(--blue); border: 2px solid var(--blue); }
+    .btn:hover{ filter: saturate(1.05); transform: translateY(-1px); }
+
+    /* Sections styling */
+    .section{ padding: 46px 0; }
+    .section-title{ text-align:center; font-size: 1.9rem; color: var(--blue); margin-bottom: 20px; }
+
+    /* Biens grid */
+    .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 18px; }
+    .card{
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow:hidden;
+      display:flex; flex-direction:column; min-height: 100%;
+      box-shadow: var(--shadow);
+    }
+    .card-image{ height: 170px; background: linear-gradient(135deg, #cfe4ff 0%, #ffffff 60%); position: relative; display:flex; align-items:flex-end; justify-content:flex-start; padding: 12px; color:#fff; }
+    .price-badge{
+      position: absolute; top: 12px; left: 12px;
+      background: rgba(3,63,127,.95); padding: 6px 10px; border-radius:999px;
+      font-weight:700; font-size: 0.85rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,.15);
+    }
+    .card-content{ padding: 12px 14px 14px; display:flex; flex-direction:column; gap:6px; flex:1; }
+    .card-content .price{ color: var(--blue); font-weight:700; font-size: 1.1rem; }
+    .card-content .title{ font-weight: 600; font-size: 1rem; color:#1b2b4b; }
+    .card-content .meta{ font-size:.85rem; color: var(--muted); }
+    .card-actions{ margin-top:auto; padding: 0 14px 14px; display:flex; gap:8px; }
+    .card-actions .btn{ padding: 10px 12px; }
+
+    /* Contact section */
+    #contact .contact-grid{
+      display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 20px; align-items: start;
+    }
+    form{ display:flex; flex-direction:column; gap:12px; }
+    label{ font-size: .9rem; color: var(--muted); }
+    input, textarea{
+      width: 100%; padding: 12px 12px; border-radius: 6px;
+      border: 1px solid var(--border); background: #fff;
+      font-size: 1rem;
+    }
+    textarea{ min-height: 150px; resize: vertical; }
+    .form-row{ display:flex; gap:12px; }
+    .form-row > div{ flex:1; }
+
+    .map{
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px; height: 100%; min-height: 260px;
+      display:flex; align-items:center; justify-content:center;
+      background: linear-gradient(#f4f7fb, #ffffff);
+      color: var(--muted);
+    }
+
+    .form-success{
+      padding: 12px 14px; border-radius: 6px; background: #e6f5e9; color: #1d6a3a; border: 1px solid #b8e4c0;
+      display:none;
+    }
+
+    @media (max-width: 900px){
+      #contact .contact-grid{ grid-template-columns: 1fr; }
+    }
+
+    /* Footer */
+    footer{ padding: 26px 20px; text-align:center; color: var(--muted); font-size: .92rem; border-top: 1px solid var(--border); background: #fff; }
+
+    /* Utilities */
+    .section-spacer{ height: 8px; }
+  </style>
+</head>
+<body>
+  <header class="site-header" aria-label="Entête">
+    <div class="header-inner">
+      <a href="#accueil" class="brand" aria-label="Retour à l'accueil">
+        <span class="dot" aria-hidden="true"></span>
+        Agence Immobilière Lubumbashi
+      </a>
+      <button class="menu-toggle" aria-label="Ouvrir le menu" aria-expanded="false" id="menuToggle">Menu</button>
+      <nav aria-label="Navigation principale" class="nav" style="margin-left:auto;">
+        <ul class="nav-links" id="primaryMenu">
+          <li><a href="#accueil">Accueil</a></li>
+          <li><a href="#biens">Biens à vendre</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <section id="accueil" class="hero" aria-label="Section d'accueil">
+    <div class="container hero-content">
+      <div class="hero-copy" style="max-width:720px;">
+        <h1>Votre agence immobilière à Lubumbashi</h1>
+        <p>Nous proposons une sélection de biens à vendre à Lubumbashi et ses environs. Propriétés conviviales, adaptées à votre budget et à vos projets. Consultez nos offres et contactez-nous pour réaliser votre achat en toute sérénité.</p>
+        <div class="cta-row">
+          <a href="#biens" class="btn primary" aria-label="Voir les biens à vendre">Voir les biens</a>
+          <a href="#contact" class="btn secondary" aria-label="Contacter l'agence">Contacter l'agence</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="biens" class="section" aria-label="Biens à vendre">
+    <div class="container">
+      <h2 class="section-title">Biens à vendre</h2>
+      <div class="grid" aria-label="Liste des biens à vendre">
+        <!-- Carte 1 -->
+        <article class="card" aria-label="Appartement 3 chambres - Lubumbashi">
+          <div class="card-image" style="background: linear-gradient(135deg, #cde3ff 0%, #ffffff 60%);">
+            <span class="price-badge">120 000 USD</span>
+          </div>
+          <div class="card-content">
+            <div class="price" aria-label="Prix">120 000 USD</div>
+            <div class="title" aria-label="Titre du bien">Appartement 3 chambres - Quartier Gécamines</div>
+            <div class="meta">Lubumbashi • Proche transports • Stationnement privé</div>
+          </div>
+          <div class="card-actions">
+            <a href="#" class="btn" aria-label="Voir les détails du bien">Détails</a>
+            <a href="#contact" class="btn secondary" aria-label="Contacter pour ce bien">Contacter</a>
+          </div>
+        </article>
+
+        <!-- Carte 2 -->
+        <article class="card" aria-label="Villa 4 chambres - Lubumbashi">
+          <div class="card-image" style="background: linear-gradient(135deg, #d6eaff 0%, #ffffff 60%);">
+            <span class="price-badge">95 000 USD</span>
+          </div>
+          <div class="card-content">
+            <div class="price" aria-label="Prix">95 000 USD</div>
+            <div class="title" aria-label="Titre du bien">Maison 4 chambres - Quartier Makutano</div>
+            <div class="meta">Lubumbashi • jardin • garage</div>
+          </div>
+          <div class="card-actions">
+            <a href="#" class="btn" aria-label="Voir les détails du bien">Détails</a>
+            <a href="#contact" class="btn secondary" aria-label="Contacter pour ce bien">Contacter</a>
+          </div>
+        </article>
+
+        <!-- Carte 3 -->
+        <article class="card" aria-label="Appartement 2 chambres - Lubumbashi">
+          <div class="card-image" style="background: linear-gradient(135deg, #e0eaff 0%, #ffffff 60%);">
+            <span class="price-badge">75 000 USD</span>
+          </div>
+          <div class="card-content">
+            <div class="price" aria-label="Prix">75 000 USD</div>
+            <div class="title" aria-label="Titre du bien">Appartement 2 chambres - Quartier Huillerie</div>
+            <div class="meta">Lubumbashi • proche écoles</div>
+          </div>
+          <div class="card-actions">
+            <a href="#" class="btn" aria-label="Voir les détails du bien">Détails</a>
+            <a href="#contact" class="btn secondary" aria-label="Contacter pour ce bien">Contacter</a>
+          </div>
+        </article>
+
+        <!-- Carte 4 -->
+        <article class="card" aria-label="Maison duplex 5 chambres - Lubumbashi">
+          <div class="card-image" style="background: linear-gradient(135deg, #d9f0ff 0%, #ffffff 60%);">
+            <span class="price-badge">180 000 USD</span>
+          </div>
+          <div class="card-content">
+            <div class="price" aria-label="Prix">180 000 USD</div>
+            <div class="title" aria-label="Titre du bien">Duplex 5 chambres - Centre-ville</div>
+            <div class="meta">Lubumbashi • proximité commerces</div>
+          </div>
+          <div class="card-actions">
+            <a href="#" class="btn" aria-label="Voir les détails du bien">Détails</a>
+            <a href="#contact" class="btn secondary" aria-label="Contacter pour ce bien">Contacter</a>
+          </div>
+        </article>
+
+        <!-- Carte 5 -->
+        <article class="card" aria-label="Appartement 3 chambres - Lubumbashi (quartier résidentiel)">
+          <div class="card-image" style="background: linear-gradient(135deg, #cde3ff 0%, #ffffff 60%);">
+            <span class="price-badge">65 000 USD</span>
+          </div>
+          <div class="card-content">
+            <div class="price" aria-label="Prix">65 000 USD</div>
+            <div class="title" aria-label="Titre du bien">Appartement 3 chambres - Quartier résidentiel</div>
+            <div class="meta">Lubumbashi • calme et sécurité</div>
+          </div>
+          <div class="card-actions">
+            <a href="#" class="btn" aria-label="Voir les détails du bien">Détails</a>
+            <a href="#contact" class="btn secondary" aria-label="Contacter pour ce bien">Contacter</a>
+          </div>
+        </article>
+
+        <!-- Carte 6 -->
+        <article class="card" aria-label="Maison 4 chambres - proximité écoles">
+          <div class="card-image" style="background: linear-gradient(135deg, #e9f3ff 0%, #ffffff 60%);">
+            <span class="price-badge">210 000 USD</span>
+          </div>
+          <div class="card-content">
+            <div class="price" aria-label="Prix">210 000 USD</div>
+            <div class="title" aria-label="Titre du bien">Maison 4 chambres - Proche écoles</div>
+            <div class="meta">Lubumbashi • quartier prisé</div>
+          </div>
+          <div class="card-actions">
+            <a href="#" class="btn" aria-label="Voir les détails du bien">Détails</a>
+            <a href="#contact" class="btn secondary" aria-label="Contacter pour ce bien">Contacter</a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" class="section" aria-label="Section contact">
+    <div class="container">
+      <h2 class="section-title">Contactez-nous</h2>
+      <div class="section-spacer" aria-hidden="true"></div>
+      <div class="contact-grid" role="region" aria-label="Formulaire de contact">
+        <form id="contactForm" autocomplete="on" aria-label="Formulaire de contact">
+          <div class="form-row">
+            <div>
+              <label for="name">Nom et prénom</label>
+              <input type="text" id="name" name="name" placeholder="Votre nom" required />
+            </div>
+            <div>
+              <label for="email">E-mail</label>
+              <input type="email" id="email" name="email" placeholder="adresse@example.com" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <label for="phone">Téléphone</label>
+              <input type="tel" id="phone" name="phone" placeholder="+243 999 999 999" />
+            </div>
+            <div>
+              <label for="subject">Objet</label>
+              <input type="text" id="subject" name="subject" placeholder="Objet de votre message" />
+            </div>
+          </div>
+          <div>
+            <label for="message">Message</label>
+            <textarea id="message" name="message" placeholder="Décrivez votre projet, votre bien ou votre demande…" required></textarea>
+          </div>
+          <div class="form-row" style="align-items:center;">
+            <button type="submit" class="btn primary" aria-label="Envoyer le formulaire">Envoyer</button>
+            <span id="formStatus" class="form-success" role="status" aria-live="polite" style="display:none;">
+              Merci ! Votre message a été envoyé. Nous vous contacterons sous peu.
+            </span>
+          </div>
+        </form>
+
+        <div class="map" aria-label="Carte indiquant Lubumbashi">
+          Carte de Lubumbashi (exemple)
+          <div style="position: absolute; right: 16px; bottom: 12px; width: 14px; height: 14px; background: var(--blue); border-radius: 50%; box-shadow: 0 0 0 6px rgba(30,97,181,.15);"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer aria-label="Pied de page">
+    <div class="container">
+      <p>Agence Immobilière - Lubumbashi</p>
+      <p>Adresse: Centre-ville, Lubumbashi, République démocratique du Congo</p>
+      <p>Tél: +243 000 000 000 • Email: contact@agence-lubumbashi.cd</p>
+    </div>
+  </footer>
+
+  <script>
+    // Simple responsive menu toggle
+    (function(){
+      const toggle = document.getElementById('menuToggle');
+      const menu = document.getElementById('primaryMenu');
+      toggle.addEventListener('click', function(){
+        const isOpen = menu.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+      // Close menu on resize if user expands viewport
+      window.addEventListener('resize', function(){
+        if (window.innerWidth > 900) {
+          menu.classList.remove('open');
+          toggle.setAttribute('aria-expanded','false');
+        }
+      });
+    })();
+
+    // Contact form handling
+    (function(){
+      const form = document.getElementById('contactForm');
+      const status = document.getElementById('formStatus');
+      form.addEventListener('submit', function(e){
+        e.preventDefault();
+        // Basic client-side validation
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const message = document.getElementById('message').value.trim();
+
+        if(!name || !email || !message){
+          alert('Veuillez remplir les champs obligatoires (Nom, Email, Message).');
+          return;
+        }
+
+        // Simulate submission
+        form.reset();
+        status.style.display = 'inline';
+        status.textContent = "Merci ! Votre message a été envoyé. Nous vous contacterons sous peu.";
+        // After a moment, hide message automatically
+        setTimeout(function(){
+          status.style.display = 'none';
+        }, 5000);
+      });
+    })();
+  </script>
+</body>
+</html>
