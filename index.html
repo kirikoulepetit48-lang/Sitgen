@@ -100,6 +100,9 @@
       <button class="icon-btn" id="downloadBtn" title="Télécharger" disabled>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
       </button>
+      <button class="icon-btn" id="publishBtn" title="Publier" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9m0 0l-4 4m4-4l4 4M4 4h16"/></svg>
+      </button>
       <button class="icon-btn" id="newBtn" title="Nouveau projet">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
       </button>
@@ -157,6 +160,7 @@
   const codeView = document.getElementById('codeView');
   const urlFake = document.getElementById('urlFake');
   const downloadBtn = document.getElementById('downloadBtn');
+  const publishBtn = document.getElementById('publishBtn');
   const newBtn = document.getElementById('newBtn');
   const tabs = document.querySelectorAll('.tab');
   const panes = { chat: document.getElementById('chatPane'), preview: document.getElementById('previewPane'), code: document.getElementById('codePane') };
@@ -244,6 +248,7 @@
     codeView.textContent = html;
     urlFake.textContent = label || 'site-genere.html';
     downloadBtn.disabled = false;
+    publishBtn.disabled = false;
     saveHistoryLocal();
   }
   function saveHistoryLocal(){
@@ -287,6 +292,54 @@
     a.click();
     URL.revokeObjectURL(url);
   });
+  function utf8ToBase64(str){
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+  publishBtn.addEventListener('click', async () => {
+    if(!currentHTML) return;
+    let owner = localStorage.getItem('sitegen_gh_owner');
+    let repo = localStorage.getItem('sitegen_gh_repo');
+    let token = localStorage.getItem('sitegen_gh_token');
+    if(!owner || !repo || !token){
+      owner = prompt("Ton nom d'utilisateur GitHub :", owner || '');
+      if(!owner) return;
+      repo = prompt('Nom du repository GitHub Pages (ex: Sitgen) :', repo || 'Sitgen');
+      if(!repo) return;
+      token = prompt('Colle ton token GitHub (garde-le secret) :', '');
+      if(!token) return;
+      localStorage.setItem('sitegen_gh_owner', owner);
+      localStorage.setItem('sitegen_gh_repo', repo);
+      localStorage.setItem('sitegen_gh_token', token);
+    }
+    publishBtn.disabled = true;
+    addThinking();
+    try{
+      const filename = 'sites/site-' + Date.now() + '.html';
+      const content = utf8ToBase64(currentHTML);
+      const res = await fetch('https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + filename, {
+        method: 'PUT',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: 'Publier un site depuis SiteGen', content: content })
+      });
+      removeThinking();
+      if(!res.ok){
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || ('Erreur ' + res.status));
+      }
+      const liveUrl = 'https://' + owner + '.github.io/' + repo + '/' + filename;
+      addMessage('ai', 'Site publié ✓ Voici ton lien : ' + liveUrl);
+    }catch(err){
+      removeThinking();
+      addMessage('ai', 'Échec de la publication : ' + err.message, true);
+      localStorage.removeItem('sitegen_gh_token');
+    }finally{
+      publishBtn.disabled = false;
+    }
+  });
   newBtn.addEventListener('click', () => {
     if(!confirm('Effacer le site actuel et recommencer ?')) return;
     currentHTML = '';
@@ -303,6 +356,7 @@
     codeView.textContent = "// Le code généré s'affichera ici.";
     urlFake.textContent = 'en attente de génération...';
     downloadBtn.disabled = true;
+    publishBtn.disabled = true;
     localStorage.removeItem('sitegen_last_html');
     localStorage.removeItem('sitegen_history');
     goToTab('chat');
