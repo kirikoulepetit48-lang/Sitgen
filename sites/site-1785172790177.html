@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ClipTube AI - Découpage IA de YouTube</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg: #0b0f15;
+      --card: #11161c;
+      --muted: #aab6c6;
+      --primary: #6ee7b7;
+      --primary-d: #34d399;
+      --accent: #7c3aed;
+      --accent2: #2563eb;
+      --ink: #e8f0f7;
+      --chip: #1e2a36;
+      --shadow: 0 8px 20px rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;height:100%}
+    body{
+      font-family: Inter, system-ui, -apple-system, Arial;
+      background: radial-gradient(1200px circle at 20% -10%, rgba(110,231,183,.15), transparent 40%),
+                  radial-gradient(900px circle at 100% 0%, rgba(124,58,237,.15), transparent 40%),
+                  linear-gradient(#0a0f14, #0a0f14);
+      color: #eaf2f8;
+      min-height:100%;
+    }
+    a{color:inherit;text-decoration:none}
+    header{
+      position: sticky; top:0; z-index:100;
+      background: rgba(10,14,20,.9);
+      border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+    .nav{
+      max-width:1100px; margin:0 auto; padding:14px 16px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .brand{display:flex; align-items:center; gap:12px}
+    .logo{
+      width:34px; height:34px; border-radius:9px;
+      background: linear-gradient(135deg, #34d399, #8b5cf6);
+      display:grid; place-items:center;
+      box-shadow: inset 0 0 8px rgba(255,255,255,.25);
+    }
+    .logo svg{width:20px;height:20px;opacity:.9}
+    .brand h1{font-size:16px; margin:0; font-weight:700; letter-spacing:.4px}
+    nav ul{list-style:none; display:flex; gap:14px; padding:0; margin:0}
+    nav a{color:#dce7f4; font-weight:500; padding:8px 12px; border-radius:999px}
+    nav a:hover{background: rgba(255,255,255,.06)}
+    main{max-width:1100px; margin:0 auto; padding:20px 16px 60px}
+    .container{display:flex; gap:20px; align-items:stretch; flex-wrap:wrap}
+    .left, .right{flex:1 1 0}
+
+    /* Hero */
+    .hero{display:flex; gap:20px; align-items:stretch; padding:22px; border-radius:14px;
+           background: linear-gradient(135deg, rgba(14,25,40,.95), rgba(8,15,25,.95));
+           border:1px solid rgba(255,255,255,.08); box-shadow: var(--shadow); margin-bottom:28px}
+    .hero-content{flex:1; min-width:260px}
+    .hero h2{font-size:28px; line-height:1.15; margin:8px 0 12px}
+    .hero p{color:var(--muted); margin:0 0 18px; font-size:14px}
+    .url-field{ display:flex; gap:8px; align-items:center; }
+    .input, .select{ width:100%; padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.15);
+      background:#0b1620; color:white; outline:none; font-size:14px }
+    .btn{ padding:12px 16px; border-radius:10px; border:0; font-weight:600;
+          background: linear-gradient(135deg, #22c55e, #16a34a); color:white; cursor:pointer; min-width:140px}
+    .btn.secondary{ background: rgba(255,255,255,.08); color:#e8f0f7; }
+    .loader{ height:14px; width:140px; border-radius:999px; overflow:hidden; background:#1f2a35; border:1px solid rgba(255,255,255,.15); }
+    .loader > span{ display:block; height:100%; width:0%; background: linear-gradient(90deg, #34d399, #38bdf8); animation: load 2s infinite; }
+    @keyframes load{ 0%{width:0} 60%{width:60%} 100%{width:100%} }
+
+    .hero-preview{ display:flex; align-items:center; justify-content:center; min-height:180px;
+                   border-radius:12px; background: #0b1a22; border:1px solid rgba(255,255,255,.08);
+                   position:relative; overflow:hidden}
+    .mock-canvas{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:#9fd3ff;
+                 font-weight:700; text-shadow:0 1px 0 rgba(0,0,0,.2)}
+    .mock-canvas svg{opacity:.3}
+
+    /* Features grid */
+    .features{ display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:14px; margin: 6px 0 28px; }
+    .card{ background: #0e1620; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:16px; box-shadow: var(--shadow)}
+    .card h3{ margin:6px 0 6px; font-size:16px}
+    .card p{ margin:0; color:var(--muted); font-size:13px}
+
+    /* Clips section */
+    .section-title{ font-weight:700; font-size:18px; margin:6px 0 12px}
+    .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px}
+    .chip{ padding:8px 12px; border-radius:999px; background:var(--chip); color:#d6e6f7; cursor:pointer; font-size:12px; border:1px solid rgba(255,255,255,.08) }
+    .chip.active{ background: linear-gradient(135deg, #1f2a3a, #1b2a37); color:#eafff0; border-color:#2b4a6e }
+
+    .clips{ display:flex; flex-wrap:wrap; gap:12px; }
+    .clip{ width:260px; min-width:240px; background:#0b1620; border:1px solid rgba(255,255,255,.08);
+           border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:8px; }
+    .thumb{ height:140px; border-radius:8px; background: #162033; display:flex; align-items:center; justify-content:center; color:#9fbbe8; font-weight:700 }
+    .clip .title{ font-size:13px; font-weight:600; color:#eaf2f7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+    .meta{ font-size:12px; color:var(--muted) }
+    .clip-actions{ display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:2px}
+    .btn.small{ padding:8px 10px; font-size:12px; border-radius:8px }
+    .btn.ghost{ background: rgba(255,255,255,.08) }
+    .download{ background: linear-gradient(135deg, #10b981, #059669); color:white; }
+
+    /* Manual editing row */
+    .range{ display:flex; align-items:center; gap:8px; }
+    .range input[type="range"]{ width:100%; }
+
+    /* Modal */
+    .modal{ position: fixed; inset:0; background: rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; padding:20px; z-index:200; }
+    .modal.open{ display:flex; }
+    .modal-content{ width:min(700px, 92%); background:#0b141c; border-radius:12px; padding:16px; border:1px solid rgba(255,255,255,.12) }
+    .modal-header{ display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,.12); padding-bottom:8px; margin-bottom:8px}
+    .modal-body{ display:flex; gap:12px; flex-wrap:wrap; align-items:stretch }
+    .preview{ flex:1; min-width:260px; height:260px; background:#0b1a22; display:grid; place-items:center; border-radius:8px; border:1px solid rgba(255,255,255,.12) }
+    .wave{ width:100%; height:100%; display:block }
+    .modal-actions{ display:flex; gap:8px; justify-content:flex-end; }
+
+    /* History & account */
+    .panel{ background:#0b1620; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px; margin-top:14px }
+    .history-list{ display:flex; flex-direction:column; gap:8px; max-height:200px; overflow:auto }
+    .row{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px; border-radius:8px; background:#111a24; border:1px solid rgba(255,255,255,.08) }
+    .row .left{ display:flex; gap:8px; align-items:center }
+    .row .badge{ font-size:11px; padding:4px 8px; border-radius:999px; background:#1f2a3a; color:#cfe2ff }
+    .login{ display:flex; flex-direction:column; gap:10px; }
+    .login input{ padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:#0b1620; color:white; }
+    .muted{ color:var(--muted); font-size:12px }
+
+    /* Responsiveness */
+    @media (max-width: 900px){
+      .hero{ flex-direction:column; }
+      .hero-preview{ height:240px; }
+    }
+    @media (max-width: 640px){
+      nav ul{ display:none }
+      .hero{ padding:14px; }
+      .clips{ justify-content:center }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav">
+      <div class="brand" aria-label="ClipTube AI">
+        <div class="logo" aria-label="Logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <path d="M3 12h18" />
+            <path d="M12 3l6 6-6 6-6-6 6-6z" />
+          </svg>
+        </div>
+        <h1>ClipTube AI</h1>
+      </div>
+      <nav aria-label="Navigation principale">
+        <ul>
+          <li><a href="#how">Comment ça marche</a></li>
+          <li><a href="#features">Fonctionnalités</a></li>
+          <li><a href="#history">Historique</a></li>
+          <li><a href="#account">Compte</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="container hero" aria-label="Section hero">
+      <div class="hero-content">
+        <span class="muted" style="font-size:12px; letter-spacing:.4px;">Bienvenue sur ClipTube AI</span>
+        <h2>Collez le lien d’une vidéo YouTube et laissez l’IA découper les meilleurs passages</h2>
+        <p>Collaborez avec l’IA pour générer automatiquement des clips prêts à être téléchargés ou partagés sur TikTok, Instagram, Facebook et YouTube Shorts. Analyse des paroles, des images et des moments clés.</p>
+
+        <div class="url-field" role="group" aria-label="Coller un lien YouTube">
+          <input id="urlInput" class="input" type="url" placeholder="Coller l'URL YouTube ici" />
+          <button id="analyzeBtn" class="btn" title="Lancer l’analyse IA">Analyser</button>
+          <button id="clearBtn" class="btn secondary" title="Effacer">Réinitialiser</button>
+        </div>
+
+        <div id="loaderWrap" style="margin-top:8px; height:14px; display:none;">
+          <div class="loader" aria-label="Progression de l’analyse"><span></span></div>
+        </div>
+      </div>
+
+      <div class="hero-preview" aria-label="Aperçu de l’interface IA">
+        <div class="mock-canvas">
+          Aperçu rapide
+          <svg width="0" height="0" style="position:absolute">
+            <!-- decorative -->
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="features" aria-label="Fonctionnalités principales">
+      <div class="card">
+        <h3>Coller un lien YouTube</h3>
+        <p>Récupération et analyse de la vidéo directement à partir de l’URL fournie.</p>
+      </div>
+      <div class="card">
+        <h3>Analyse par IA</h3>
+        <p>Identification des meilleurs moments et des éléments clés (paroles, images, moments forts).</p>
+      </div>
+      <div class="card">
+        <h3>Découpage automatique</h3>
+        <p>Extraction des extraits selon vos critères (durée, moments, citations, etc.).</p>
+      </div>
+      <div class="card">
+        <h3>Ajout et traduction de sous-titres</h3>
+        <p>Génération automatique et traduction des sous-titres pour chaque clip.</p>
+      </div>
+      <div class="card">
+        <h3>Formats et HD</h3>
+        <p>Changement de format (16:9, 9:16, 1:1) et téléchargement en HD.</p>
+      </div>
+      <div class="card">
+        <h3>Historique et compte</h3>
+        <p>Historique des clips et compte utilisateur pour sauvegarder vos projets.</p>
+      </div>
+    </section>
+
+    <section aria-label="Comment ça fonctionne" id="how" class="panel" style="margin-top:6px;">
+      <div class="section-title" style="margin-bottom:6px;">Comment ça fonctionne</div>
+      <ol style="margin:0 0 8px 18px; padding:0; color:#d6e6f7">
+        <li> Collez le lien YouTube. </li>
+        <li> L’IA analyse le contenu (paroles, images, moments clés). </li>
+        <li> Choisissez ce que vous souhaitez extraire (moments drôles, buts, citations, plage précise, etc.). </li>
+        <li> Le site découpe automatiquement et vous permet de prévisualiser chaque extrait. </li>
+        <li> Téléchargez en MP4 ou partagez directement sur TikTok, Instagram, Facebook ou YouTube Shorts. </li>
+      </ol>
+    </section>
+
+    <section aria-label="Extraction des clips" id="clips" class="panel" style="margin-top:12px;">
+      <div class="section-title" style="display:flex; align-items:center; justify-content:space-between;">
+        <span>Extraits générés</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <span class="muted" style="font-size:12px;">Catégorie</span>
+          <div class="chips" id="categoryChips" role="group" aria-label="Catégories d’extraits" style="margin:0"></div>
+        </div>
+      </div>
+
+      <div id="clipsContainer" class="clips" aria-label="Liste des extraits">
+        <!-- dynamically generated clips -->
+      </div>
+      <div id="manualNote" class="muted" style="margin-top:6px; display:none;">
+        Mode manuel activé: ajustez les horodatages directement dans chaque extrait.
+      </div>
+
+      <div class="panel" style="margin-top:14px;">
+        <div style="display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span class="muted" style="font-size:12px;">Autres options</span>
+            <button id="toggleManual" class="btn small ghost" style="padding:8px 12px;">Découpage manuel</button>
+            <button id="toggleSubtitles" class="btn small ghost" style="padding:8px 12px;">Sous-titres auto</button>
+            <button id="toggleTranslate" class="btn small ghost" style="padding:8px 12px;">Traduction</button>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <label class="muted" style="font-size:12px; margin-right:6px;">Format</label>
+            <select id="formatSelect" class="select" aria-label="Format de sortie" style="width:150px;">
+              <option value="16:9">16:9</option>
+              <option value="9:16">9:16</option>
+              <option value="1:1">1:1</option>
+            </select>
+            <button id="downloadAll" class="btn download" title="Télécharger tous les extraits">Télécharger tout</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="history" class="panel" aria-label="Historique des clips" style="margin-top:12px;">
+      <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Historique des clips</span>
+        <button id="clearHistory" class="btn small ghost" style="padding:8px 12px;">Effacer l’historique</button>
+      </div>
+      <div class="history-list" id="historyList" aria-live="polite">
+        <!-- history rows -->
+      </div>
+    </section>
+
+    <section id="account" class="panel" aria-label="Compte utilisateur" style="margin-top:12px;">
+      <div class="section-title" style="margin-bottom:6px;">Compte</div>
+      <div id="accountPanel" class="account-panel" aria-label="Panel utilisateur">
+        <div class="login" id="loginBox">
+          <input id="username" placeholder="Nom d'utilisateur" />
+          <input id="password" type="password" placeholder="Mot de passe" />
+          <button id="loginBtn" class="btn" style="width:180px;">Se connecter</button>
+          <span class="muted" style="font-size:12px;">Pas encore de compte ? Un essai local sans inscription est disponible.</span>
+        </div>
+        <div id="welcomeBox" style="display:none;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div class="logo" style="width:28px;height:28px;border-radius:6px; display:grid; place-items:center;">
+              <span style="font-size:12px; font-weight:700;">U</span>
+            </div>
+            <strong id="welcomeUser"></strong>
+          </div>
+          <p class="muted" style="margin:6px 0 0 0; font-size:12px;">Vos clips et préférences sont stockés localement sur cet appareil.</p>
+          <button id="logoutBtn" class="btn small" style="width:120px; margin-top:6px;">Se déconnecter</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="modal" id="previewModal" aria-hidden="true" aria-label="Aperçu de l’extrait">
+    <div class="modal-content">
+      <div class="modal-header">
+        <strong id="modalTitle">Aperçu de l’extrait</strong>
+        <button class="btn small ghost" id="closeModal">Fermer</button>
+      </div>
+      <div class="modal-body">
+        <div class="preview" id="previewArea" aria-label="Prévisualisation">
+          <!-- faux visuel -->
+          <svg class="wave" viewBox="0 0 300 100" preserveAspectRatio="none" aria-label="Onde simulée">
+            <polyline fill="none" stroke="#7dd3fc" stroke-width="2" points="0,60 25,50 50,60 75,40 100,60 125,55 150,60 175,40 200,60 225,50 250,60 275,45 300,60"/>
+          </svg>
+          <span style="position:absolute; bottom:8px; right:12px; font-size:12px; color:#cbd5e1;">Aperçu simulé</span>
+        </div>
+        <div style="flex:1; min-width:240px; display:flex; flex-direction:column; gap:8px;">
+          <div class="muted" id="modalSubtitle">Titre de l’extrait</div>
+          <div class="muted" id="modalTime" style="font-size:12px;"></div>
+          <div><textarea rows="4" class="input" style="resize:vertical;" placeholder="Notes/éditorialisation"></textarea></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn small ghost" id="cancelPreview">Annuler</button>
+        <button class="btn small" id="confirmPreview">Ajouter au téléchargement</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Données et état
+    const urlInput = document.getElementById('urlInput');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const loaderWrap = document.getElementById('loaderWrap');
+    const clipsContainer = document.getElementById('clipsContainer');
+    const categoryChips = document.getElementById('categoryChips');
+    const manualToggle = document.getElementById('toggleManual');
+    const formatSelect = document.getElementById('formatSelect');
+    const downloadAll = document.getElementById('downloadAll');
+    const historyList = document.getElementById('historyList');
+    const clearHistory = document.getElementById('clearHistory');
+    const loginBtn = document.getElementById('loginBtn');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const loginBox = document.getElementById('loginBox');
+    const welcomeBox = document.getElementById('welcomeBox');
+    const welcomeUser = document.getElementById('welcomeUser');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const previewModal = document.getElementById('previewModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const closeModal = document.getElementById('closeModal');
+    const cancelPreview = document.getElementById('cancelPreview');
+    const confirmPreview = document.getElementById('confirmPreview');
+    const modalSubtitle = document.getElementById('modalSubtitle');
+    const modalTime = document.getElementById('modalTime');
+    const previewArea = document.getElementById('previewArea');
+    let currentPreviewClip = null;
+
+    // Catégories d’extraits
+    const categories = [
+      "Les moments les plus drôles",
+      "Les moments les plus intéressants",
+      "Les buts d'un match",
+      "Les citations importantes",
+      "Partie précise"
+    ];
+
+    let state = {
+      analyzing: false,
+      url: '',
+      clips: [],
+      manual: false,
+      subtitles: true,
+      translate: false,
+      format: '16:9',
+      user: null,
+      history: []
+    };
+
+    // Init: charger l’historique et l’utilisateur
+    function loadState(){
+      try{
+        const hist = JSON.parse(localStorage.getItem('cliptube_history') || '[]');
+        state.history = hist;
+        renderHistory();
+      }catch(e){}
+      const user = JSON.parse(localStorage.getItem('cliptube_user') || 'null');
+      if(user && user.name){
+        state.user = user;
+        showUser(user.name);
+      }
+    }
+
+    function saveHistory(entry){
+      state.history.unshift(entry);
+      if(state.history.length>50) state.history.pop();
+      localStorage.setItem('cliptube_history', JSON.stringify(state.history));
+      renderHistory();
+    }
+
+    function showUser(name){
+      loginBox.style.display='none';
+      welcomeBox.style.display='block';
+      welcomeUser.textContent = name;
+    }
+
+    // Lancer l’analyse simulée
+    function simulateAnalysis(url){
+      state.url = url;
+      state.analyzing = true;
+      loaderWrap.style.display = 'block';
+      clipsContainer.innerHTML = '';
+      // actif: attendre 1.6s puis générer
+      setTimeout(()=>{
+        const category = currentCategory();
+        state.clips = generateClips(url, category);
+        renderClips();
+        state.analyzing = false;
+        loaderWrap.style.display = 'none';
+      }, 1200);
+    }
+
+    // Génération de clips simulée
+    function generateClips(url, category){
+      // base duration: 30-120s
+      const count = Math.max(4, Math.min(8, 4 + Math.floor(Math.random()*4)));
+      const baseDur = 30 + Math.floor(Math.random()*60);
+      const clips = [];
+      for(let i=0;i<count;i++){
+        const start = Math.floor(Math.random()*(baseDur-10));
+        const dur = 8 + Math.floor(Math.random()*40);
+        const end = Math.min(baseDur, start + dur);
+        const titles = [
+          "Moment clé",
+          "Réaction inattendue",
+          "Citation marquante",
+          "Climax",
+          "Rebond inattendu",
+          "Rire garanti",
+          "Highlight",
+          "Parole importante"
+        ];
+        const t = category === "Partie précise" ? "2:30 à 3:15" : titles[Math.floor(Math.random()*titles.length)];
+        clips.push({
+          id: 'clip_' + Date.now() + '_' + i,
+          title: t + ' • ' + (i+1),
+          start: start,
+          end: end,
+          duration: end - start,
+          urlPreview: url,
+          thumbnail: null,
+          category: category
+        });
+      }
+      // si catégorie spécifique, ajuster
+      if(category === "Partie précise"){
+        clips[0].start = 150; clips[0].end = 180; clips[0].duration = 30;
+        clips[1].start = 180; clips[1].end = 210; clips[1].duration = 30;
+      }
+      return clips;
+    }
+
+    function renderClips(){
+      clipsContainer.innerHTML = '';
+      state.clips.forEach((clip, idx) => {
+        const c = document.createElement('div');
+        c.className = 'clip';
+        c.dataset.id = clip.id;
+        c.innerHTML = `
+          <div class="thumb" aria-label="Miniature">Clip ${idx+1}<br/><span style="font-size:11px; opacity:.8;">${formatTime(clip.start)} - ${formatTime(clip.end)}</span></div>
+          <div class="title" title="${clip.title}">${clip.title}</div>
+          <div class="meta">Durée: ${formatTime(clip.duration)}</div>
+          <div class="clip-actions">
+            <button class="btn small" onclick="openPreview('${clip.id}')">Prévisualiser</button>
+            <button class="btn small download" onclick="downloadClip('${clip.id}')">Télécharger MP4</button>
+          </div>
+          <div class="range" style="gap:6px;">
+            <span class="muted" style="font-size:11px; width:40px; display:inline-block;">Start</span>
+            <input type="range" min="0" max="${Math.max(clip.end-clip.start-1,0)}" value="${clip.start}" data-key="start" class="rangeStart" />
+            <span class="muted" style="font-size:11px; width:56px; display:inline-block;">${formatTime(clip.start)}</span>
+          </div>
+          <div class="range" style="gap:6px;">
+            <span class="muted" style="font-size:11px; width:40px; display:inline-block;">End</span>
+            <input type="range" min="0" max="${clip.end-clip.start}" value="${clip.end}" data-key="end" class="rangeEnd" />
+            <span class="muted" style="font-size:11px; width:56px; display:inline-block;">${formatTime(clip.end)}</span>
+          </div>
+        `;
+        // event handlers pour ranges
+        const startInput = c.querySelector('.rangeStart');
+        const endInput = c.querySelector('.rangeEnd');
+        if(startInput){
+          startInput.addEventListener('input', (e)=>{
+            const newStart = parseInt(e.target.value);
+            clip.start = newStart;
+            // update labels
+            const spans = c.querySelectorAll('.range span');
+            spans[1].textContent = formatTime(clip.start);
+            // constrain
+            if(clip.start >= clip.end){
+              clip.end = clip.start + 1;
+            }
+          });
+        }
+        if(endInput){
+          endInput.addEventListener('input', (e)=>{
+            const newEnd = parseInt(e.target.value);
+            clip.end = newEnd;
+            const spans = c.querySelectorAll('.range span');
+            spans[1].textContent = formatTime(clip.end);
+            if(clip.end <= clip.start){
+              clip.start = clip.end - 1;
+            }
+          });
+        }
+        // bouton preview
+        c.querySelector('button[onclick^="openPreview"]').setAttribute('onclick', `openPreview('${clip.id}')`);
+        clipsContainer.appendChild(c);
+      });
+    }
+
+    // Helpers
+    function formatTime(seconds){
+      const s = Math.max(0, Math.floor(seconds));
+      const m = Math.floor(s/60);
+      const sec = s%60;
+      return m+':' + (sec<10?'0':'') + sec;
+    }
+
+    function currentCategory(){
+      const active = document.querySelector('.chip.active');
+      return active ? active.textContent : categories[0];
+    }
+
+    function renderCategoryChips(){
+      categoryChips.innerHTML = '';
+      categories.forEach((cat, idx) => {
+        const chip = document.createElement('button');
+        chip.className = 'chip' + (idx===0 ? ' active' : '');
+        chip.textContent = cat;
+        chip.addEventListener('click', ()=>{
+          document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+        });
+        categoryChips.appendChild(chip);
+      });
+    }
+
+    // Preview modal
+    function openPreview(id){
+      const clip = state.clips.find(c=>c.id===id);
+      if(!clip) return;
+      currentPreviewClip = clip;
+      modalTitle.textContent = 'Aperçu – ' + clip.title;
+      modalSubtitle.textContent = clip.title;
+      modalTime.textContent = `Genéré entre ${formatTime(clip.start)} et ${formatTime(clip.end)} sur ${formatTime(clip.duration)}`;
+      previewModal.classList.add('open');
+      previewModal.setAttribute('aria-hidden','false');
+    }
+
+    function closePreview(){
+      previewModal.classList.remove('open');
+      previewModal.setAttribute('aria-hidden','true');
+      currentPreviewClip = null;
+    }
+
+    function downloadClip(id){
+      const clip = state.clips.find(c=>c.id===id);
+      if(!clip) return;
+      const blob = new Blob([`Clip: ${clip.title}\nFrom: ${formatTime(clip.start)} To: ${formatTime(clip.end)}\nDuration: ${formatTime(clip.duration)}\nSource: ${clip.urlPreview}`], {type:'video/mp4'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (clip.title || 'clip') + '.mp4';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      // Save to history
+      const entry = {
+        id: id,
+        title: clip.title,
+        time: new Date().toISOString(),
+        duration: clip.duration
+      };
+      saveHistory(entry);
+    }
+
+    function addToDownloadsAll(){
+      if(state.clips.length===0) return;
+      state.clips.forEach(clip => {
+        const blob = new Blob([`Clip: ${clip.title}\nFrom: ${formatTime(clip.start)} To: ${formatTime(clip.end)}\nDuration: ${formatTime(clip.duration)}\nSource: ${clip.urlPreview}`], {type:'video/mp4'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = (clip.title || 'clip') + '.mp4';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+      });
+      // history
+      const entry = {
+        id: 'bulk_' + Date.now(),
+        title: state.url ? 'Bulk export: ' + state.url : 'Bulk export',
+        time: new Date().toISOString(),
+        duration: 0
+      };
+      saveHistory(entry);
+    }
+
+    // Event bindings
+    analyzeBtn.addEventListener('click', ()=>{
+      const url = urlInput.value.trim();
+      if(!url){
+        alert('Veuillez coller une URL YouTube valide.');
+        return;
+      }
+      simulateAnalysis(url);
+    });
+
+    clearBtn.addEventListener('click', ()=>{
+      urlInput.value = '';
+      state.clips = [];
+      clipsContainer.innerHTML = '';
+    });
+
+    // Modal controls
+    closeModal.addEventListener('click', closePreview);
+    cancelPreview.addEventListener('click', closePreview);
+    confirmPreview.addEventListener('click', ()=>{
+      // Ajouter au téléchargement (défini par utilisateur: simple enregistrement)
+      if(currentPreviewClip){
+        const entry = {
+          id: currentPreviewClip.id,
+          title: currentPreviewClip.title,
+          time: new Date().toISOString(),
+          duration: currentPreviewClip.duration
+        };
+        saveHistory(entry);
+        closePreview();
+      }
+    });
+
+    // Others
+    downloadAll.addEventListener('click', addToDownloadsAll);
+
+    // Categories - apply filter on click
+    function initCategoryClicks(){
+      // Initially set 1st as active
+      renderCategoryChips();
+    }
+
+    // History render
+    function renderHistory(){
+      historyList.innerHTML = '';
+      if(state.history.length===0){
+        const empty = document.createElement('div');
+        empty.className = 'muted';
+        empty.textContent = 'Aucun clip téléchargé ou enregistré dans l’historique.';
+        historyList.appendChild(empty);
+        return;
+      }
+      state.history.forEach(h => {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `
+          <div class="left">
+            <span class="badge" aria-label="Type">Clip</span>
+            <strong>${h.title}</strong>
+          </div>
+          <div class="right" style="display:flex; gap:6px; align-items:center;">
+            <span class="muted" style="font-size:12px;">${new Date(h.time).toLocaleString()}</span>
+            <button class="btn small ghost" onclick="replayHistory('${h.id}')">Rejouer</button>
+          </div>
+        `;
+        historyList.appendChild(row);
+      });
+    }
+
+    function replayHistory(id){
+      const found = state.history.find(h=>h.id===id);
+      if(!found) return;
+      alert('Rejouer: ' + found.title);
+    }
+
+    // Account
+    loginBtn.addEventListener('click', ()=>{
+      const name = usernameInput.value.trim();
+      const pass = passwordInput.value;
+      if(!name){
+        alert('Veuillez entrer un nom d’utilisateur.');
+        return;
+      }
+      // registre local simple
+      state.user = {name, pass};
+      localStorage.setItem('cliptube_user', JSON.stringify(state.user));
+      showUser(name);
+    });
+
+    logoutBtn.addEventListener('click', ()=>{
+      state.user = null;
+      localStorage.setItem('cliptube_user', 'null');
+      loginBox.style.display = 'block';
+      welcomeBox.style.display = 'none';
+      usernameInput.value = '';
+      passwordInput.value = '';
+    });
+
+    // Subtitles and translate toggles
+    document.getElementById('toggleSubtitles').addEventListener('click', ()=>{
+      state.subtitles = !state.subtitles;
+      document.getElementById('toggleSubtitles').classList.toggle('active', state.subtitles);
+      // no-op visual
+      alert(state.subtitles ? 'Sous-titres activés' : 'Sous-titres désactivés');
+    });
+
+    document.getElementById('toggleTranslate').addEventListener('click', ()=>{
+      state.translate = !state.translate;
+      alert(state.translate ? 'Traduction des sous-titres activée' : 'Traduction des sous-titres désactivée');
+    });
+
+    manualToggle.addEventListener('click', ()=>{
+      state.manual = !state.manual;
+      document.getElementById('manualNote').style.display = state.manual ? 'block' : 'none';
+    });
+
+    // Init
+    function init(){
+      loadState();
+      initCategoryClicks();
+      renderClips();
+      renderHistory();
+    }
+
+    // Endpoints for category chips click
+    // Delegate click handler for chips
+    categoryChips.addEventListener('click', (e)=>{
+      if(e.target && e.target.classList.contains('chip')){
+        // set active
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        e.target.classList.add('active');
+        // Optionally regenerate clips according to category
+        if(state.url){
+          // Regenerate with new category
+          const newCat = e.target.textContent;
+          state.clips = generateClips(state.url, newCat);
+          renderClips();
+        }
+      }
+    });
+
+    // Heartbeat to ensure "format" change doesn't disrupt
+    formatSelect.addEventListener('change', ()=>{
+      state.format = formatSelect.value;
+      // Could adjust aspect or display; for demo, show a small toast-like confirm
+      console.log('Format changé à ' + state.format);
+    });
+
+    // Preview close on outside click
+    previewModal.addEventListener('click', (e)=>{
+      if(e.target === previewModal){ closePreview(); }
+    });
+
+    // Initialize
+    init();
+
+    // Expose some functions for inline onclick usage in created HTML (downloadClip, openPreview)
+    window.openPreview = openPreview;
+    window.downloadClip = downloadClip;
+  </script>
+</body>
+</html>
