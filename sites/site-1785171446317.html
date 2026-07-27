@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ClipTube AI — Découpe intelligente de vidéos YouTube</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --blue: #2b6cb0;
+      --blue-dark:#1e4a8e;
+      --blue-soft:#eaf3ff;
+      --green:#12a56f;
+      --white:#ffffff;
+      --text:#1a2a3a;
+      --muted:#6b7a93;
+      --bg:#f6f8fb;
+      --card:#ffffff;
+      --border:#e5ebf5;
+      --shadow: 0 8px 20px rgba(20, 60, 120, 0.08);
+      --radius: 12px;
+    }
+
+    *{box-sizing:border-box}
+    html, body{margin:0;padding:0}
+    body{
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+    }
+
+    /* Header / Navigation */
+    .site-header{
+      position: sticky; top:0; z-index:1000;
+      background:#fff; border-bottom:1px solid var(--border);
+    }
+    .header-inner{
+      max-width: 1200px; margin:0 auto; padding: 14px 20px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      font-weight: 700; color: var(--blue);
+      text-decoration:none;
+    }
+    .brand .logo{
+      width:28px; height:28px; border-radius:8px;
+      background: conic-gradient(from 180deg at 50% 50%, #2b6cb0, #6bd4ff, #2b6cb0);
+      box-shadow: inset 0 0 8px rgba(255,255,255,.6);
+    }
+    .menu-toggle{
+      display:none; background: none; border: none; font-size: 14px;
+      padding: 8px 12px; border-radius:6px; cursor: pointer;
+      color: var(--blue); font-weight:600;
+    }
+    .nav-links{ list-style:none; display:flex; gap: 14px; padding:0; margin:0; }
+    .nav-links a{
+      text-decoration:none; color: var(--text);
+      padding: 8px 12px; border-radius:6px;
+      transition: background .2s;
+    }
+    .nav-links a:hover{ background: #f0f6ff; color: var(--blue); }
+
+    @media (max-width: 900px){
+      .menu-toggle{ display:inline-block; }
+      .nav-links{ position:absolute; top:60px; right:20px; left:20px;
+                  flex-direction: column; padding:12px; background:#fff;
+                  border:1px solid var(--border); border-radius:10px;
+                  display:none; box-shadow: var(--shadow);
+      }
+      .nav-links.open{ display:flex; }
+    }
+
+    /* Sections */
+    .container{ max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+    /* Hero */
+    .hero{
+      display:flex; align-items:center; justify-content:center;
+      min-height: 58vh; padding: 40px 0;
+      background: linear-gradient(135deg, #eaf6ff 0%, #ffffff 60%);
+    }
+    .hero-content{ display:flex; flex-direction:column; align-items:flex-start; gap:18px; max-width: 900px; padding: 0 10px; }
+    .hero h1{ font-size: 2.6rem; margin:0; color: var(--blue); }
+    .hero p{ font-size: 1.05rem; color: var(--muted); max-width: 60ch; }
+    .cta-row{ display:flex; gap:12px; flex-wrap: wrap; }
+
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding: 12px 16px; border-radius:8px; text-decoration:none;
+      font-weight: 700; border: none; cursor: pointer;
+    }
+    .btn.primary{ background: var(--blue); color: #fff; }
+    .btn.secondary{ background: #fff; color: var(--blue); border: 2px solid var(--blue); }
+    .btn.success{ background: var(--green); color: #fff; border: none; }
+    .btn:hover{ filter: saturate(1.05); transform: translateY(-1px); }
+
+    /* Sections styling */
+    .section{ padding: 46px 0; }
+    .section-title{ text-align:center; font-size: 1.9rem; color: var(--blue); margin-bottom: 20px; }
+
+    /* Form & controls */
+    .panel{ background: var(--card); border:1px solid var(--border); border-radius: var(--radius);
+            padding: 16px; box-shadow: var(--shadow); }
+    .two-col{ display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    label{ font-size: .9rem; color: var(--muted); display:block; margin-bottom:6px; }
+    input, textarea, select{
+      width:100%; padding: 12px 12px; border-radius: 8px;
+      border:1px solid var(--border); background:#fff;
+      font-size: 1rem;
+    }
+    textarea{ min-height: 120px; resize: vertical; }
+    .form-row{ display:flex; gap:12px; align-items:center; }
+
+    /* Clip grid */
+    .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .card{
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow:hidden;
+      display:flex; flex-direction:column; min-height: 100%;
+      box-shadow: var(--shadow);
+    }
+    .card-preview{ height: 150px; background: linear-gradient(135deg, #ddeeff, #ffffff); position:relative; display:flex; align-items:flex-end; justify-content:flex-start; padding:12px; }
+    .card-preview .tag{ position:absolute; top:10px; left:10px; background: rgba(0,0,0,.25); color:#fff; padding:6px 10px; border-radius:999px; font-size:.8rem; }
+    .clip-title{ font-weight:600; font-size:1rem; color:#1b2b4b; padding:0 12px; }
+    .clip-meta{ color:var(--muted); font-size:.85rem; padding:0 12px 8px; }
+    .card-actions{ margin-top:auto; padding: 10px 12px 14px; display:flex; gap:8px; }
+    .badge{ font-weight:700; font-size:.85rem; padding:6px 10px; border-radius:999px; background:#f3f6ff; color:var(--blue); }
+    .ghost{ background:#fff; border:1px dashed var(--border); color:var(--blue); }
+
+    /* Preview modal */
+    .modal{ position: fixed; inset:0; display:none; align-items:center; justify-content:center; padding:20px; background: rgba(0,0,0,.4); z-index: 2000; }
+    .modal.open{ display:flex; }
+    .modal-content{ width: min(860px, 90vw); background:#fff; border-radius:12px; padding:16px; box-shadow: var(--shadow); display:flex; flex-direction:column; gap:12px; }
+    .preview-area{ height: 260px; border-radius:8px; background: #0b1020; display:flex; align-items:center; justify-content:center; color:#fff; overflow:hidden; position:relative; }
+    .preview-area .bars{ position:absolute; left:0; right:0; top:0; bottom:0; display:flex; align-items:end; gap:6px; padding:12px; }
+    .preview-area .bar{ width: 6px; background: rgba(255,255,255,.9); border-radius:3px; animation: bounce 1s infinite ease-in-out; }
+    @keyframes bounce{ 0%,100%{ height:40px; } 50%{ height:140px; } }
+
+    .modal-header{ display:flex; justify-content:space-between; align-items:center; }
+    .modal-title{ font-weight:700; color:var(--blue); }
+
+    .tagline{ font-size:.92rem; color:var(--muted); }
+
+    /* Section: historique */
+    .history{ display:flex; flex-direction:column; gap:12px; }
+    .history-item{ display:flex; justify-content:space-between; align-items:center; padding:12px; border:1px solid var(--border); border-radius:8px; background:#fff; }
+    .history-item small{ color:var(--muted); }
+
+    /* Footer */
+    footer{ padding: 26px 20px; text-align:center; color: var(--muted); font-size: .92rem; border-top: 1px solid var(--border); background: #fff; }
+
+    /* Helpers */
+    .section-spacer{ height: 8px; }
+    @media (max-width: 900px){
+      .two-col{ grid-template-columns: 1fr; }
+      .hero h1{ font-size: 2.2rem; }
+      .card-preview{ height: 140px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header" aria-label="Entête">
+    <div class="header-inner">
+      <a href="#accueil" class="brand" aria-label="Retour à l'accueil">
+        <span class="logo" aria-hidden="true"></span>
+        ClipTube AI
+      </a>
+      <button class="menu-toggle" aria-label="Ouvrir le menu" aria-expanded="false" id="menuToggle">Menu</button>
+      <nav aria-label="Navigation principale" class="nav" style="margin-left:auto;">
+        <ul class="nav-links" id="primaryMenu">
+          <li><a href="#accueil">Accueil</a></li>
+          <li><a href="#fonctionnalites">Fonctionnalités</a></li>
+          <li><a href="#commentaire">Comment ça marche</a></li>
+          <li><a href="#essai">Essayer</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <section id="accueil" class="hero" aria-label="Section d'accueil">
+    <div class="container hero-content">
+      <div class="hero-copy" style="max-width:860px;">
+        <h1>ClipTube AI</h1>
+        <p>Collez un lien YouTube et laissez l’IA découper les meilleurs passages selon votre besoin. Moments drôles, moments clés, buts, citations, ou segments précis. Prévisualisez, téléchargez en MP4 et partagez directement sur les réseaux.</p>
+        <div class="cta-row">
+          <a href="#essai" class="btn primary" aria-label="Essayer ClipTube AI">Essayer maintenant</a>
+          <a href="#fonctionnalites" class="btn secondary" aria-label="Voir les fonctionnalités">Voir les fonctionnalités</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="essai" class="section" aria-label="Section essai">
+    <div class="container panel" style="padding:20px;">
+      <div class="section-spacer" aria-hidden="true" style="height:6px;"></div>
+      <div class="form-row" style="gap:12px; align-items:stretch; flex-wrap:wrap;">
+        <div style="flex:2; min-width: 260px;">
+          <label for="ytLink" style="margin-bottom:6px;">Coller lien YouTube</label>
+          <input type="url" id="ytLink" placeholder="https://www.youtube.com/watch?v=exemple" />
+        </div>
+        <div style="flex:1.2; min-width:180px; display:flex; align-items: flex-end;">
+          <button id="analyzeBtn" class="btn primary" aria-label="Analyser la vidéo" style="width:100%;">Analyser avec IA</button>
+        </div>
+        <div style="flex:1; min-width:180px;">
+          <label>Mode découpage</label>
+          <select id="modeDecoupage" aria-label="Mode de découpage">
+            <option value="auto">Découpage automatique</option>
+            <option value="manuel">Découpage manuel</option>
+          </select>
+        </div>
+      </div>
+      <div class="section-spacer" aria-hidden="true" style="height:12px;"></div>
+      <div class="tagline">Astuce: demandez par exemple "les 10 meilleurs moments pour TikTok de 30 à 60 secondes" après l’analyse.</div>
+    </div>
+  </section>
+
+  <section id="commentaire" class="section" aria-label="Comment ça marche">
+    <div class="container">
+      <h2 class="section-title">Comment ça marche</h2>
+      <div class="grid" aria-label="Étapes du fonctionnement">
+        <div class="card" aria-label="Étape 1">
+          <div class="card-preview" style="height:110px; background: linear-gradient(135deg, #d9f0ff 0%, #ffffff 60%);">
+            <span class="tag" style="left:12px; top:12px;">Étape 1</span>
+          </div>
+          <div class="clip-title" style="padding:0 12px;">Coller le lien YouTube</div>
+          <div class="clip-meta" style="padding:0 12px 12px;">L’utilisateur colle l’URL de la vidéo.</div>
+        </div>
+        <div class="card" aria-label="Étape 2">
+          <div class="card-preview" style="height:110px; background: linear-gradient(135deg, #e0ffd9 0%, #ffffff 60%);">
+            <span class="tag" style="left:12px; top:12px;">Étape 2</span>
+          </div>
+          <div class="clip-title" style="padding:0 12px;">Analyse IA</div>
+          <div class="clip-meta" style="padding:0 12px 12px;">L’IA identifie les passages importants et les moments clés.</div>
+        </div>
+        <div class="card" aria-label="Étape 3">
+          <div class="card-preview" style="height:110px; background: linear-gradient(135deg, #ffd9d9 0%, #ffffff 60%);">
+            <span class="tag" style="left:12px; top:12px;">Étape 3</span>
+          </div>
+          <div class="clip-title" style="padding:0 12px 0;">Découpage et sous-titres</div>
+          <div class="clip-meta" style="padding:0 12px 12px;">Découpage automatique ou manuel, ajout et traduction des sous-titres.</div>
+        </div>
+        <div class="card" aria-label="Étape 4">
+          <div class="card-preview" style="height:110px; background: linear-gradient(135deg, #d9d9ff 0%, #ffffff 60%);">
+            <span class="tag" style="left:12px; top:12px;">Étape 4</span>
+          </div>
+          <div class="clip-title" style="padding:0 12px 0;">Téléchargement et partage</div>
+          <div class="clip-meta" style="padding:0 12px 12px;">Téléchargez en MP4 ou partagez sur TikTok, Instagram, YouTube Shorts.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="fonctionnalites" class="section" aria-label="Fonctionnalités">
+    <div class="container">
+      <h2 class="section-title">Fonctionnalités</h2>
+      <div class="grid" aria-label="Liste des fonctionnalités">
+        <div class="card" aria-label="Coller un lien YouTube">
+          <div class="card-preview" style="height:110px; background: linear-gradient(135deg, #cde4ff 0%, #ffffff 60%);">
+            <span class="tag">Lien YouTube</span>
+          </div>
+          <div class="clip-title" style="padding:0 12px;">Coller un lien YouTube</div>
+          <div class="clip-meta" style="padding:0 12px 12px;">Point d’entrée simple pour lancer l’analyse.</div>
+        </div>
+        <div class="card" aria-label="Analyse par IA">
+          <div class="card-preview" style="height:110px; background: linear-gradient(135deg, #d9ffd9 0%, #ffffff 60%);">
+            <span class="tag">IA</span>
+          </div>
+          <div class="clip-title" style="padding:0 12px 0;">Analyse par IA</div>
+          <div class="clip-meta" style="padding:0 12px 12px;">Extraction du contenu pertinentes (paroles, images, moments forts).</div>
+        </div>
+        <div class="card" aria-label="Découpage automatique">
+          <div class="card-preview" style="height:110px; background: linear-gradient(135deg, #ffd9e0 0%, #ffffff 60%);">
+            <span class="tag">Auto</span>
+          </div>
+          <div class="clip-title" style="padding:0 12px 0;">Découpage automatique</div>
+          <div class="clip-meta" style="padding:0 12px 12px;">Génération rapide de clips prêts à télécharger.</div>
+        </div>
+        <div class="card" aria-label="Découpage manuel">
+          <div class="card-preview" style="height:110px; background: linear-gradient(135deg, #e6e0ff 0%, #ffffff 60%);">
+            <span class="tag">Manuel</span>
+          </div>
+          <div class="clip-title" style="padding:0 12px 0;">Découpage manuel</div>
+          <div class="clip-meta" style="padding:0 12px 12px;">Ajustez les segments exacts selon vos besoins.</div>
+        </div>
+        <div class="card" aria-label="Sous-titres et traduction">
+          <div class="card-preview" style="height:110px; background: linear-gradient(135deg, #d0f0ff 0%, #ffffff 60%);">
+            <span class="tag">Sous-titres</span>
+          </div>
+          <div class="clip-title" style="padding:0 12px 0;">Sous-titres et traduction</div>
+          <div class="clip-meta" style="padding:0 12px 12px;">Ajout et traduction automatiques des sous-titres.</div>
+        </div>
+        <div class="card" aria-label="Formats et HD">
+          <div class="card-preview" style="height:110px; background: linear-gradient(135deg, #ffd9d9 0%, #ffffff 60%);">
+            <span class="tag">Formats</span>
+          </div>
+          <div class="clip-title" style="padding:0 12px 0;">Format et HD</div>
+          <div class="clip-meta" style="padding:0 12px 12px;">Choix 16:9, 9:16, 1:1 et téléchargement HD.</div>
+        </div>
+      </div>
+      <div class="section-spacer" aria-hidden="true" style="height:12px;"></div>
+      <div class="panel" style="display:flex; gap:12px; align-items:center; justify-content:space-between;">
+        <div class="tagline" style="margin:0;">Historique des clips, compte utilisateur et préférences sauvegardés.</div>
+        <button class="btn" id="viewHistoryBtn" aria-label="Voir l'historique">Voir l’historique</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="essai-extraits" class="section" aria-label="Extraits générés">
+    <div class="container">
+      <h2 class="section-title" id="extraitsTitre" style="margin-top: 0;">Extraits générés</h2>
+      <p class="tagline" style="text-align:center; margin-top:-6px;">Collez un lien et lancez l’analyse. Les extraits apparaissent ci-dessous.</p>
+      <div id="clipsGrid" class="grid" aria-label="Liste des extraits générés" style="margin-top: 12px;">
+        <!-- Extraits générés dynamiquement -->
+      </div>
+    </div>
+  </section>
+
+  <section id="historique" class="section" aria-label="Historique des clips">
+    <div class="container">
+      <h2 class="section-title" style="margin-bottom:6px;">Historique des clips</h2>
+      <div class="history" id="historyList" aria-label="Extraits précédemment générés">
+        <div class="history-item" aria-label="Aucun élément historique">
+          Aucun extrait enregistré pour le moment.
+          <small>Effectuez une analyse pour remplir l’historique.</small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer aria-label="Pied de page">
+    <div class="container">
+      <p>ClipTube AI</p>
+      <p>Tout droit réservé — Demo interne</p>
+    </div>
+  </footer>
+
+  <!-- Preview Modal -->
+  <div class="modal" id="previewModal" aria-hidden="true" aria-label="Aperçu de l'extrait">
+    <div class="modal-content" role="dialog" aria-label="Aperçu de l'extrait">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">Aperçu de l'extrait</div>
+        <button class="btn" id="closePreview" aria-label="Fermer l'aperçu">Fermer</button>
+      </div>
+      <div class="preview-area" id="previewArea" aria-label="Zone de prévisualisation">
+        <!-- animations bars simulent le lecteur -->
+        <div class="bars" aria-hidden="true" id="bars">
+          <span class="bar" style="animation-delay:0s; height:60px;"></span>
+          <span class="bar" style=" animation-delay:.2s; height:100px;"></span>
+          <span class="bar" style=" animation-delay:.4s; height:80px;"></span>
+          <span class="bar" style=" animation-delay:.6s; height:120px;"></span>
+          <span class="bar" style=" animation-delay:.8s; height:90px;"></span>
+        </div>
+        <div style="z-index:1; font-weight:700; text-shadow:0 1px 0 rgba(0,0,0,.4);">Aperçu visuel simulé</div>
+      </div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button class="btn" id="downloadBtn" aria-label="Télécharger le clip">Télécharger MP4</button>
+        <button class="btn secondary" id="shareBtn" aria-label="Partager le clip">Partager</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Menu responsive
+    (function(){
+      const toggle = document.getElementById('menuToggle');
+      const menu = document.getElementById('primaryMenu');
+      toggle.addEventListener('click', function(){
+        const isOpen = menu.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+      window.addEventListener('resize', function(){
+        if (window.innerWidth > 900) {
+          menu.classList.remove('open');
+          toggle.setAttribute('aria-expanded','false');
+        }
+      });
+    })();
+
+    // Données historiques et extraits
+    const historyList = document.getElementById('historyList');
+    const clipsGrid = document.getElementById('clipsGrid');
+    const previewModal = document.getElementById('previewModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const closePreview = document.getElementById('closePreview');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    let currentPreview = null;
+
+    // Simuler l'analyse et générer des extraits
+    document.getElementById('analyzeBtn').addEventListener('click', function(){
+      const link = document.getElementById('ytLink').value.trim();
+      if(!link){
+        alert('Veuillez coller un lien YouTube valide.');
+        return;
+      }
+      const mode = document.getElementById('modeDecoupage').value;
+      simulateAnalysis(link, mode);
+    });
+
+    function simulateAnalysis(link, mode){
+      // Nettoyer les résultats précédents
+      clipsGrid.innerHTML = '';
+      // Génération fictive d'extraits
+      const titles = [
+        "Moment drôle clé",
+        "Citation marquante",
+        "Retour spectaculaire",
+        "Réaction rapide",
+        "Moment de tension",
+        "Résumé 0:00-0:30"
+      ];
+      const times = [
+        "2:15", "0:45", "3:30", "1:12", "4:05", "0:50"
+      ];
+      const durations = [22, 38, 56, 41, 15, 60];
+      const colors = [
+        "linear-gradient(135deg, #cde3ff 0%, #ffffff 60%)",
+        "linear-gradient(135deg, #ffd9e0 0%, #ffffff 60%)",
+        "linear-gradient(135deg, #e0ffd9 0%, #ffffff 60%)",
+        "linear-gradient(135deg, #d9e0ff 0%, #ffffff 60%)",
+        "linear-gradient(135deg, #fff0d9 0%, #ffffff 60%)",
+        "linear-gradient(135deg, #d9f0ff 0%, #ffffff 60%)"
+      ];
+
+      // Nombre mini-clips basés sur mode
+      const count = (mode === 'auto') ? 6 : 4;
+
+      for(let i=0; i<count; i++){
+        const clip = document.createElement('article');
+        clip.className = 'card';
+        clip.setAttribute('aria-label', `Extrait ${i+1} - ${titles[i % titles.length]}`);
+
+        const preview = document.createElement('div');
+        preview.className = 'card-preview';
+        preview.style.height = '150px';
+        preview.style.background = colors[i % colors.length];
+        const badge = document.createElement('span');
+        badge.className = 'tag';
+        badge.textContent = (i+1) + " / " + count;
+        preview.appendChild(badge);
+
+        const title = document.createElement('div');
+        title.className = 'clip-title';
+        title.textContent = titles[i % titles.length];
+
+        const meta = document.createElement('div');
+        meta.className = 'clip-meta';
+        meta.textContent = "Durée: " + durations[i] + "s • Début: " + times[i % times.length];
+
+        const actions = document.createElement('div');
+        actions.className = 'card-actions';
+        const previewBtn = document.createElement('button');
+        previewBtn.className = 'btn';
+        previewBtn.textContent = 'Prévisualiser';
+        previewBtn.setAttribute('aria-label', 'Prévisualiser l’extrait');
+        previewBtn.addEventListener('click', function(){
+          openPreview(i, titles[i % titles.length], durations[i]);
+        });
+        const downloadBtnLocal = document.createElement('button');
+        downloadBtnLocal.className = 'btn secondary';
+        downloadBtnLocal.textContent = 'Télécharger MP4';
+        downloadBtnLocal.setAttribute('aria-label', 'Télécharger ce clip');
+        downloadBtnLocal.addEventListener('click', function(){
+          alert('Téléchargement simulé : ' + (titles[i % titles.length]));
+          pushHistory(titles[i % titles.length], durations[i]);
+        });
+
+        actions.appendChild(previewBtn);
+        actions.appendChild(downloadBtnLocal);
+
+        clip.appendChild(preview);
+        clip.appendChild(title);
+        clip.appendChild(meta);
+        clip.appendChild(actions);
+
+        clipsGrid.appendChild(clip);
+      }
+
+      // Met à jour l'historique avec une entrée synthétique
+      pushHistory("Analyse de " + (link.length > 40 ? link.slice(0, 40) + "…" : link), 0);
+    }
+
+    function openPreview(index, title, duration){
+      currentPreview = { index, title, duration };
+      modalTitle.textContent = "Aperçu — " + title;
+      previewModal.classList.add('open');
+      previewModal.setAttribute('aria-hidden','false');
+    }
+
+    closePreview.addEventListener('click', function(){
+      previewModal.classList.remove('open');
+      previewModal.setAttribute('aria-hidden','true');
+      currentPreview = null;
+    });
+
+    // Téléchargement et partage simulés
+    downloadBtn.addEventListener('click', function(){
+      if(!currentPreview){
+        alert("Sélectionnez d'abord un extrait à Prévisualiser.");
+        return;
+      }
+      alert('Téléchargement simulé : ' + currentPreview.title);
+      pushHistory(currentPreview.title, currentPreview.duration);
+    });
+
+    shareBtn.addEventListener('click', function(){
+      if(!currentPreview){
+        alert("Sélectionnez d'abord un extrait à partager.");
+        return;
+      }
+      alert('Partage simulé : ' + currentPreview.title);
+    });
+
+    // Historique
+    function pushHistory(title, duration){
+      // Ajouter à l'historique visuel
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      item.innerHTML = `<strong>${title}</strong><span>${duration ? duration + 's' : ''}</span>`;
+      // Si première entrée, remplacer le message vide
+      if(historyList.children.length === 1 && historyList.children[0].textContent.includes('Aucun')) {
+        historyList.removeChild(historyList.children[0]);
+      }
+      historyList.insertBefore(item, historyList.firstChild);
+    }
+
+    // Vue historique bouton
+    document.getElementById('viewHistoryBtn').addEventListener('click', function(){
+      const section = document.getElementById('historique');
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Initialisation UI
+    (function init(){
+      // Préparer une première entrée vide
+      // Aucun extraits initialement
+    })();
+  </script>
+</body>
+</html>
