@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SocialBoost - Boostez vos réseaux sociaux</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg: #0b1020;
+      --bg-soft: #11152a;
+      --surface: #181e36;
+      --text: #e8eaf6;
+      --muted: #a5b4d4;
+      --primary: #7c5cff;
+      --primary-2: #8a3ff0;
+      --pink: #ff4d9d;
+      --blue: #4cc9f0;
+      --green: #27e08a;
+      --card: rgba(255,255,255,.04);
+      --shadow: 0 6px 20px rgba(0,0,0,.25);
+      --radius: 14px;
+      --border: rgba(255,255,255,.08);
+    }
+
+    [data-theme="light"]{
+      --bg: #f6f7fb;
+      --bg-soft: #eef1f7;
+      --surface: #ffffff;
+      --text: #0e1b2a;
+      --muted: #52607a;
+      --card: rgba(0,0,0,.04);
+      --border: rgba(0,0,0,.08);
+      --shadow: 0 6px 20px rgba(0,0,0,.08);
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;height:100%}
+    body{font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; background: radial-gradient( circle at 20% -10%, rgba(124,92,255,.25) 0%, transparent 40%), radial-gradient(circle at 100% 0%, rgba(0,200,255,.15) 0%, transparent 40%), var(--bg); color:var(--text); overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    img{max-width:100%;display:block}
+
+    /* Layout */
+    .container{width:clamp(320px, 92%, 1200px); margin:0 auto; padding:0 1rem}
+    header{
+      position: sticky; top:0; z-index:100; backdrop-filter: saturate(1.2) blur(6px);
+      background: linear-gradient(to right, rgba(12,12,24,.95), rgba(12,12,24,.75) 60%, rgba(12,12,24,.9));
+      border-bottom:1px solid var(--border);
+    }
+    .nav{ display:flex; align-items:center; justify-content:space-between; padding:14px 0}
+    .brand{ display:flex; align-items:center; gap:12px; font-family: Montserrat, sans-serif; font-weight:700; letter-spacing:.4px}
+    .brand .logo{ width:34px; height:34px; border-radius:9px; display:grid; place-items:center;
+      background: conic-gradient(from 180deg at 50% 50%, #7c5cff, #4cc9f0, #ff4d9d, #7c5cff);
+      box-shadow: inset 0 0 12px rgba(255,255,255,.25);
+      color:white; font-size:18px;
+    }
+    nav ul{ display:flex; gap:14px; list-style:none; margin:0; padding:0 }
+    nav li a{ padding:10px 12px; border-radius:8px; color:var(--text); opacity:.9; transition: all .25s ease; }
+    nav li a.active, nav li a:hover{ background: rgba(255,255,255,.08); transform: translateY(-1px); }
+    .cta-mini{ padding:10px 14px; border-radius:999px; border:1px solid rgba(255,255,255,.25);
+      background: linear-gradient(135deg, rgba(124,92,255,.9), rgba(0, 210, 255, .9)); color:white; font-weight:600; cursor:pointer;
+      box-shadow: 0 6px 14px rgba(124,92,255,.4);
+    }
+    .theme-toggle{ margin-left:8px; border-radius:999px; padding:6px 10px; border:1px solid var(--border); background: var(--surface); color:var(--text); cursor:pointer}
+
+    /* Hero */
+    .hero{ padding:48px 0 28px; display:flex; align-items:center; justify-content: center; }
+    .hero-inner{ display:grid; grid-template-columns: 1.05fr 0.95fr; gap:28px; align-items:center; padding:20px; }
+    .hero h1{ font-family: Montserrat, sans-serif; font-weight: 800; font-size: clamp(28px, 4vw, 48px); line-height:1.05; margin:8px 0 12px}
+    .hero p{ font-size: clamp(14px, 2.2vw, 18px); color:var(--muted); max-width: 640px}
+    .hero-cta{ display:flex; gap:12px; align-items:center; margin-top:18px}
+    .btn{ padding:12px 18px; border-radius:999px; border:0; cursor:pointer; font-weight:700; transition: transform .25s ease, box-shadow .25s ease, background .25s ease;}
+    .btn.primary{ background: linear-gradient(135deg, var(--primary), var(--pink)); color:white; box-shadow: 0 8px 20px rgba(124,92,255,.5);}
+    .btn.secondary{ background: rgba(255,255,255,.08); color:var(--text); border:1px solid var(--border); }
+    .hero-visual{ position:relative; height:360px; border-radius:22px; background: linear-gradient(135deg, rgba(124,92,255,.25), rgba(0,212,255,.25)); display:grid; place-items:center; overflow:hidden; box-shadow: var(--shadow)}
+    .device{ width:85%; height:auto; border-radius:14px; background: rgba(255,255,255,.1); padding:14px; display:flex; gap:10px; align-items:center; justify-content:center}
+    @media (max-width: 900px){
+      .hero-inner{ grid-template-columns: 1fr; text-align:left; }
+      .hero-visual{ height:260px; }
+    }
+
+    /* Section blocks */
+    section{ padding:48px 0; }
+    h2.section-title{ font-family: Montserrat, sans-serif; font-weight:700; font-size: clamp(22px, 3vw, 32px); margin:0 0 8px}
+    .section-sub{ color:var(--muted); margin-bottom:14px }
+
+    /* Cards grid */
+    .grid{ display:grid; gap:14px; }
+    .card{ background: var(--card); border:1px solid var(--border); border-radius: var(--radius); padding:16px; box-shadow: var(--shadow); }
+    .card-plat{ display:flex; align-items:flex-start; gap:12px; }
+    .icon{ width:34px; height:34px; border-radius:9px; display:grid; place-items:center; background: rgba(124,92,255,.15); color:#fff; }
+    .card h3{ margin:6px 0 6px; font-size:16px }
+    .card p{ color:var(--muted); font-size:14px; margin:0 0 8px; }
+    .price{ font-weight:700; color:#fff; background: linear-gradient(135deg, var(--primary), var(--pink)); padding:6px 10px; border-radius:8px; font-size:13px; display:inline-block}
+    .card-actions{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px }
+
+    /* Tabs & filters */
+    .filters{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px}
+    .chip{ padding:8px 12px; border-radius:999px; border:1px solid var(--border); background: rgba(255,255,255,.04); cursor:pointer; font-weight:600; font-size:13px; }
+    .chip.active{ background: linear-gradient(135deg, var(--primary), var(--pink)); color:white; border:0; }
+
+    /* Testimonials */
+    .testi{ display:flex; flex-direction:column; gap:14px; }
+    .rev{ display:flex; gap:12px; align-items:flex-start; padding:12px; border-radius:12px; background: rgba(255,255,255,.04); border:1px solid var(--border) }
+    .avatar{ width:42px; height:42px; border-radius:50%; background: #333; display:grid; place-items:center; color:white; font-weight:700}
+    .stars{ color:#ffd166; font-size:14px; display:inline-flex; gap:2px }
+
+    /* Counters */
+    .stats{ display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; }
+    .stat{ padding:14px; border-radius:12px; background: var(--surface); border:1px solid var(--border); text-align:center }
+    .stat .value{ font-family: Montserrat, sans-serif; font-size:28px; font-weight:800; }
+
+    /* FAQ */
+    .faq-item{ border:1px solid var(--border); border-radius:12px; overflow:hidden; background: rgba(255,255,255,.04); }
+    .faq-q{ width:100%; text-align:left; padding:12px 14px; background: rgba(0,0,0,.0); border:0; cursor:pointer; font-weight:700; color:var(--text) }
+    .faq-a{ padding:0 14px 14px; color:var(--muted); display:none; }
+
+    /* Newsletter + footer */
+    .newsletter{ display:flex; gap:8px; flex-wrap:wrap; align-items:center }
+    .input{ padding:12px 14px; border-radius:999px; border:1px solid var(--border); background: rgba(255,255,255,.04); color:var(--text); min-width: 230px; }
+    footer{ padding:26px 0 40px; border-top:1px solid var(--border); margin-top:30px; }
+
+    /* Services detail page look */
+    .section-title-block{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap}
+    .service-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; }
+    @media (max-width: 1000px){
+      .service-grid{ grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px){
+      .service-grid{ grid-template-columns: 1fr; }
+    }
+
+    /* Dashboard */
+    .dashboard{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    .panel{ padding:14px; border-radius:12px; background: var(--surface); border:1px solid var(--border); min-height:120px; }
+    .chart{ width:100%; height:180px; background: linear-gradient(180deg, rgba(124,92,255,.15), rgba(0,0,0,0)); border-radius:8px; display:block; }
+    .order{ display:flex; align-items:center; justify-content:space-between; padding:10px; border-bottom:1px solid var(--border) }
+    .badge{ padding:4px 8px; border-radius:999px; background: rgba(0,0,0,.15); font-size:12px; }
+
+    /* Modals & widgets */
+    .modal{ position: fixed; top:0; left:0; width:100%; height:100%; display:none; align-items:center; justify-content:center; background: rgba(0,0,0,.5); padding:16px; z-index:200 }
+    .modal.open{ display:flex }
+    .modal-card{ width: min(720px, 92%); background: var(--surface); border-radius:14px; padding:14px; border:1px solid var(--border); box-shadow: var(--shadow) }
+    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .field{ display:flex; flex-direction:column; gap:6px; flex:1 1 240px }
+    label{ font-size:12px; color:var(--muted) }
+    input, textarea, select{ padding:10px 12px; border-radius:8px; border:1px solid var(--border); background: rgba(0,0,0,.04); color:var(--text); }
+    textarea{ resize: vertical; min-height:90px }
+
+    /* Toast */
+    #toast{ position: fixed; bottom: 20px; left:50%; transform: translateX(-50%); background: #111; color:white; padding:12px 16px; border-radius:8px; box-shadow:0 6px 16px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition: all .3s ease; z-index: 300}
+    #toast.show{ opacity:1; transform: translateX(-50%) translateY(-6px); pointer-events:auto }
+
+    /* Utility */
+    .hidden{ display:none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container nav" style="align-items:center;">
+      <div class="brand" aria-label="SocialBoost">
+        <div class="logo">S</div>
+        <div>
+          <div style="font-weight:800; letter-spacing:.5px;">SocialBoost</div>
+          <small style="color:var(--muted); display:block; margin-top:2px">Growth for creators</small>
+        </div>
+      </div>
+
+      <nav aria-label="navigation principale">
+        <ul id="nav-links">
+          <li><a href="#home" class="active" data-section="home">Accueil</a></li>
+          <li><a href="#services" data-section="services">Services</a></li>
+          <li><a href="#pricing" data-section="pricing">Tarifs</a></li>
+          <li><a href="#testimonials" data-section="testimonials">Témoignages</a></li>
+          <li><a href="#contact" data-section="contact">Contact</a></li>
+        </ul>
+      </nav>
+
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="cta-mini" id="open-auth" title="Connexion/Inscription">Se connecter</button>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Mode sombre/clair">🌗</button>
+        <button class="btn primary" id="start-btn" title="Booster mon compte">Booster mon compte</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Landing / Hero -->
+  <section id="home" class="hero">
+    <div class="container hero-inner">
+      <div class="hero-copy" style="padding:4px 0;">
+        <span style="display:inline-flex; align-items:center; gap:8px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:1px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--blue);display:inline-block"></span> Nouvelle vague de croissance
+        </span>
+        <h1>SocialBoost - Développez votre présence sur TikTok, YouTube, Instagram et Facebook</h1>
+        <p>Des services certifiés, des résultats rapides et mesurables pour accroître vos abonnés, vues et engagement sur les réseaux les plus puissants du moment.</p>
+        <div class="hero-cta">
+          <button class="btn primary" id="cta-booster">Booster mon compte</button>
+          <button class="btn secondary" onclick="document.getElementById('home').scrollIntoView({behavior:'smooth'})">Découvrir nos services</button>
+        </div>
+      </div>
+      <div class="hero-visual" aria-label="Vue d'applications sociales">
+        <div class="device">
+          <div style="display:flex; flex-direction:column; gap:6px; align-items:center;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-label="TikTok" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 22v-8H6l-2 2v4h5z" fill="#111"/>
+            </svg>
+            <div style="font-weight:700">TikTok</div>
+          </div>
+          <div style="width:1px; height:60px; background: rgba(255,255,255,.3);"></div>
+          <div style="display:flex; gap:8px;">
+            <div style="width:40px;height:40px;border-radius:8px;background:#000;display:grid;place-items:center;color:white">YT</div>
+            <div style="width:40px;height:40px;border-radius:8px;background:#e34f26;display:grid;place-items:center;color:white; font-weight:700">IG</div>
+            <div style="width:40px;height:40px;border-radius:8px;background:#3b5998;display:grid;place-items:center;color:white; font-weight:700">FB</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section Nos services -->
+  <section id="services">
+    <div class="container">
+      <h2 class="section-title">Nos services</h2>
+      <p class="section-sub">Des offres pour augmenter rapidement vos indicateurs clés sur chaque plateforme.</p>
+
+      <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap:14px;">
+        <!-- TikTok Subscribers -->
+        <div class="card" role="article">
+          <div class="card-plat">
+            <div class="icon" aria-label="Abonnés TikTok">Tik</div>
+            <div>
+              <h3>Abonnés TikTok</h3>
+              <p>Obtenez des abonnés réels et ciblés, boostez la crédibilité de votre profil et favorisez le reach organique.</p>
+            </div>
+          </div>
+          <div class="card-actions">
+            <span class="price">à partir de 19€</span>
+            <button class="btn" onclick="openOrder('Abonnés TikTok', 'https://tiktok.com/@votreprofil')">Commander</button>
+          </div>
+        </div>
+
+        <!-- YouTube Views -->
+        <div class="card" role="article">
+          <div class="card-plat">
+            <div class="icon" aria-label="Vues YouTube">YT</div>
+            <div>
+              <h3>Vues YouTube</h3>
+              <p>Vues qualifiées pour améliorer la démonstration sociale et l’algorithme de YouTube.</p>
+            </div>
+          </div>
+          <div class="card-actions">
+            <span class="price">à partir de 29€</span>
+            <button class="btn" onclick="openOrder('Vues YouTube', 'https://youtube.com/channel/nom')">Commander</button>
+          </div>
+        </div>
+
+        <!-- Instagram Likes -->
+        <div class="card" role="article">
+          <div class="card-plat">
+            <div class="icon" aria-label="Likes Instagram">IG</div>
+            <div>
+              <h3>Likes Instagram</h3>
+              <p>Augmentez rapidement l’engagement et la popularité de vos publications.</p>
+            </div>
+          </div>
+          <div class="card-actions">
+            <span class="price">à partir de 15€</span>
+            <button class="btn" onclick="openOrder('Likes Instagram', 'https://instagram.com/nom')">Commander</button>
+          </div>
+        </div>
+
+        <!-- Facebook Followers -->
+        <div class="card" role="article">
+          <div class="card-plat">
+            <div class="icon" aria-label="Followers Facebook">FB</div>
+            <div>
+              <h3>Followers Facebook</h3>
+              <p>Renforcez votre crédibilité avec une base d’abonnés solide et active.</p>
+            </div>
+          </div>
+          <div class="card-actions">
+            <span class="price">à partir de 18€</span>
+            <button class="btn" onclick="openOrder('Followers Facebook', 'https://facebook.com/nom')">Commander</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comment ça marche -->
+  <section id="how" style="background: rgba(255,255,255,.03); padding:16px 0;">
+    <div class="container">
+      <h2 class="section-title" style="margin-bottom:6px">Comment ça marche</h2>
+      <p class="section-sub" style="margin-bottom:18px">Trois étapes simples pour booster rapidement votre présence.</p>
+      <div class="grid" style="grid-template-columns: repeat(3, 1fr); gap:14px">
+        <div class="card" aria-label="Étape 1">
+          <strong>1. Choisir le service</strong>
+          <p>Sélectionnez un service adapté à votre objectif et à votre plateforme.</p>
+        </div>
+        <div class="card" aria-label="Étape 2">
+          <strong>2. Entrer le lien du profil</strong>
+          <p>Collez l’URL publique de votre profil pour lancer l’action.</p>
+        </div>
+        <div class="card" aria-label="Étape 3">
+          <strong>3. Voir les résultats grandir</strong>
+          <p>Suivez les indicateurs et les retours en temps réel.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Témoignages -->
+  <section id="testimonials">
+    <div class="container">
+      <h2 class="section-title">Témoignages</h2>
+      <p class="section-sub">Ce que disent nos clients créateurs et agences.</p>
+
+      <div class="testi">
+        <div class="rev">
+          <div class="avatar" aria-label="Avatar">A</div>
+          <div>
+            <strong>Anaïs L.</strong> <span class="badge" title="Note">4.9/5</span>
+            <div class="stars" aria-label="Note 5 étoiles">★★★★★</div>
+            <p style="margin:6px 0 0; color:var(--muted); font-size:14px;">"SocialBoost a boosté mes abonnés TikTok en 2 semaines. service pro et rapide."</p>
+          </div>
+        </div>
+
+        <div class="rev">
+          <div class="avatar" aria-label="Avatar">M</div>
+          <div>
+            <strong>Marin D.</strong> <span class="badge" title="Note">5/5</span>
+            <div class="stars" aria-label="Note 5 étoiles">★★★★★</div>
+            <p style="margin:6px 0 0; color:var(--muted); font-size:14px;">"Les vues YouTube ont donné un vrai coup d'accélérateur à ma chaîne."</p>
+          </div>
+        </div>
+
+        <div class="rev">
+          <div class="avatar" aria-label="Avatar">F</div>
+          <div>
+            <strong>Fatima H.</strong> <span class="badge">4.7/5</span>
+            <div class="stars" aria-label="Note 4 étoiles">★★★★☆</div>
+            <p style="margin:6px 0 0; color:var(--muted); font-size:14px;">"Engagement et retours conformes aux promesses de l’offre."</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Statistiques -->
+  <section id="stats" style="background: rgba(124,92,255,.08);">
+    <div class="container">
+      <h2 class="section-title">Statistiques impressionnantes</h2>
+      <p class="section-sub">Des résultats réels pour des créateurs du monde entier.</p>
+      <div class="stats" aria-label="Statistiques clés">
+        <div class="stat">
+          <div class="value" data-target="1240" >0</div>
+          <div>Clients satisfaits</div>
+        </div>
+        <div class="stat">
+          <div class="value" data-target="3200" >0</div>
+          <div>Comptes boostés</div>
+        </div>
+        <div class="stat">
+          <div class="value" data-target="38" >0</div>
+          <div>Pays desservis</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="container">
+      <h2 class="section-title">Questions fréquentes</h2>
+      <p class="section-sub">Retrouvez les réponses aux questions les plus posées.</p>
+
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false" onclick="toggleFaq(this)">Comment se passe l'authentification ?</button>
+        <div class="faq-a">Inscrivez-vous ou connectez-vous pour accéder au Dashboard, passer commande et suivre vos livraisons en temps réel.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false" onclick="toggleFaq(this)">Les commandes sont-elles sûres ?</button>
+        <div class="faq-a">Nous proposons des services conformes aux politiques des plateformes. Les résultats varient selon l'algorithme et le profil.</div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-q" aria-expanded="false" onclick="toggleFaq(this)">Comment payer ?</button>
+        <div class="faq-a">Paiement simulé via notre walkthrough internaute. Le processus est fictif et destiné à démonstration.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact">
+    <div class="container" style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:14px;">
+      <div class="card" style="padding:16px;">
+        <h3 style="margin:0 0 8px;">Contact / Support</h3>
+        <p style="color:var(--muted); margin-top:0;">Envoyez-nous votre demande et nous répondrons dans les plus brefs délais.</p>
+        <form id="contact-form" onsubmit="submitContact(event)" aria-label="Formulaire de contact">
+          <div class="row" style="flex-wrap:wrap;">
+            <div class="field" style="flex:1 1 180px;">
+              <label for="name">Nom</label>
+              <input id="name" required placeholder="Votre nom" />
+            </div>
+            <div class="field" style="flex:1 1 180px;">
+              <label for="email">Email</label>
+              <input id="email" type="email" required placeholder="you@example.com" />
+            </div>
+          </div>
+          <div class="field" style="margin-top:8px;">
+            <label for="message">Message</label>
+            <textarea id="message" required placeholder="Votre demande..." ></textarea>
+          </div>
+          <button class="btn primary" style="margin-top:8px;" type="submit">Envoyer</button>
+        </form>
+      </div>
+
+      <div class="card" style="padding:14px;">
+        <h3 style="margin:0 0 8px;">Chat en direct (simulé)</h3>
+        <div id="live-chat" style="height:180px; overflow:auto; padding:6px; border:1px solid var(--border); border-radius:8px; background: rgba(0,0,0,.04);">
+          <div class="message" style="margin:6px 0; text-align:left;">
+            <span style="background:#333; color:white; padding:6px 8px; border-radius:12px; display:inline-block;">Bonjour 👋 Comment puis-je vous aider ?</span>
+          </div>
+        </div>
+        <div class="row" style="margin-top:6px;">
+          <input id="chat-input" placeholder="Message..." class="input" style="flex:1 1 200px;" />
+          <button class="btn" onclick="sendChat()">Envoyer</button>
+        </div>
+        <div class="section-sub" style="margin-top:8px;">Réseaux: 
+          <span class="badge" style="margin-left:6px;">Instagram</span>
+          <span class="badge" style="margin-left:6px;">TikTok</span>
+          <span class="badge" style="margin-left:6px;">YouTube</span>
+          <span class="badge" style="margin-left:6px;">Facebook</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tarifs -->
+  <section id="pricing" style="background: rgba(255,255,255,.02);">
+    <div class="container">
+      <h2 class="section-title">Tarifs</h2>
+      <p class="section-sub">Formules claires, sans surprises, adaptées à chaque objectif.</p>
+
+      <div class="grid" style="grid-template-columns: repeat(3, 1fr); gap:14px;">
+        <div class="card" aria-label="Basique">
+          <h3 style="margin:0 0 6px; font-family: Montserrat, sans-serif;">Basique</h3>
+          <p>Idéal pour tester l’efficacité et démarrer rapidement</p>
+          <div class="value" style="font-size:28px; font-weight:800; margin:8px 0;">à partir de 39€</div>
+          <ul style="padding-left:18px; color:var(--muted); line-height:1.6; margin:6px 0 12px;">
+            <li>Abonnés/Views limités</li>
+            <li>Livraison 5-7 jours</li>
+            <li>Garantie 7 jours</li>
+          </ul>
+          <button class="btn primary" onclick="selectPlan('Basique')">Choisir cette offre</button>
+        </div>
+
+        <div class="card" aria-label="Pro">
+          <h3 style="margin:0 0 6px; font-family: Montserrat, sans-serif;">Pro</h3>
+          <p>Pour une croissance accélérée et plus d’engagement</p>
+          <div class="value" style="font-size:28px; font-weight:800; margin:8px 0 0;">à partir de 89€</div>
+          <ul style="padding-left:18px; color:var(--muted); line-height:1.6; margin:6px 0 12px;">
+            <li>Plus d’abonnés & vues</li>
+            <li>Livraison 3-5 jours</li>
+            <li>Garantie 14 jours</li>
+          </ul>
+          <button class="btn primary" onclick="selectPlan('Pro')">Choisir cette offre</button>
+        </div>
+
+        <div class="card" aria-label="Premium">
+          <h3 style="margin:0 0 6px; font-family: Montserrat, sans-serif;">Premium</h3>
+          <p>Performance maximale et accompagnement</p>
+          <div class="value" style="font-size:28px; font-weight:800; margin:8px 0 0;">à partir de 199€</div>
+          <ul style="padding-left:18px; color:var(--muted); line-height:1.6; margin:6px 0 12px;">
+            <li>Tous services inclus</li>
+            <li>Livraison en 24-72h</li>
+            <li>Garantie 30 jours</li>
+          </ul>
+          <button class="btn primary" onclick="selectPlan('Premium')">Choisir cette offre</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dashboard (protéger via login) -->
+  <section id="dashboard" style="padding:0 0 20px;">
+    <div class="container">
+      <h2 class="section-title" style="margin-top:0;">Tableau de bord</h2>
+      <p class="section-sub" id="dashboard-sub" style="margin-bottom:8px;">Connectez-vous pour accéder à votre espace personnel.</p>
+
+      <div class="dashboard" aria-label="Dashboard utilisateur">
+        <div class="panel" id="panel-orders">
+          <strong>Commandes en cours</strong>
+          <div id="ongoing" style="margin-top:8px; color:var(--muted);">Aucune commande en cours.</div>
+          <button class="btn primary" style="margin-top:8px;" onclick="openOrderFromDashboard()">Nouvelle commande</button>
+        </div>
+        <div class="panel" id="panel-history">
+          <strong>Historique des commandes</strong>
+          <div id="history" style="margin-top:8px; color:var(--muted); max-height:120px; overflow:auto;"></div>
+        </div>
+        <div class="panel" id="panel-growth">
+          <strong>Croissance (graphique)</strong>
+          <svg class="chart" viewBox="0 0 400 180" preserveAspectRatio="none" aria-label="Graphique de croissance" style="width:100%; height:120px;">
+            <polyline fill="none" stroke="#7c5cff" stroke-width="3" points="0,120 40,96 80,110 120,70 160,85 200,60 240,40 280,52 320,28 360,20 400,12" />
+          </svg>
+          <div class="section-sub" style="margin-top:6px;">Progression globale de vos indicateurs depuis votre premier achat.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feed back for auth / signup modals -->
+  <div class="modal" id="auth-modal" aria-hidden="true" aria-label="Connexion / Inscription">
+    <div class="modal-card" role="dialog" aria-label="Authentification">
+      <div class="row" style="justify-content: space-between; align-items:center;">
+        <strong>Accès SocialBoost</strong>
+        <button class="btn" onclick="closeAuth()" aria-label="Fermer">Fermer</button>
+      </div>
+      <hr style="border:0; height:1px; background:var(--border); margin:8px 0 12px;">
+      <div class="row" style="gap:6px;">
+        <button class="chip active" id="tab-login" onclick="switchAuthTab('login')">Connexion</button>
+        <button class="chip" id="tab-signup" onclick="switchAuthTab('signup')">Inscription</button>
+      </div>
+
+      <form id="auth-form" onsubmit="submitAuth(event)" style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+        <div id="name-field" class="field" style="display:none;">
+          <label for="name-auth">Nom</label>
+          <input id="name-auth" placeholder="Votre nom" />
+        </div>
+        <div class="field" id="email-field">
+          <label for="email-auth">Email</label>
+          <input id="email-auth" type="email" placeholder="exemple@mail.com" required />
+        </div>
+        <div class="field" id="password-field">
+          <label for="password-auth">Mot de passe</label>
+          <input id="password-auth" type="password" placeholder="••••••••" required />
+        </div>
+        <button class="btn primary" type="submit" id="auth-submit">Se connecter</button>
+        <div id="auth-status" style="color:var(--muted); font-size:13px;"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Order modal -->
+  <div class="modal" id="order-modal" aria-label="Commande">
+    <div class="modal-card">
+      <div class="row" style="justify-content:space-between; align-items:center;">
+        <strong id="order-title">Commande</strong>
+        <button class="btn" onclick="closeOrder()">Fermer</button>
+      </div>
+      <hr style="border:0; height:1px; background:var(--border); margin:8px 0 12px;">
+      <form id="order-form" onsubmit="processOrder(event)" class="row" style="flex-direction:column;">
+        <div class="row" style="flex-wrap:wrap;">
+          <div class="field" style="flex:1 1 240px;">
+            <label for="order-profile">Lien du profil</label>
+            <input id="order-profile" placeholder="https://..." required />
+          </div>
+          <div class="field" style="flex:1 1 180px;">
+            <label for="order-service">Service</label>
+            <select id="order-service" required>
+              <option value="Abonnés TikTok">Abonnés TikTok</option>
+              <option value="Vues YouTube">Vues YouTube</option>
+              <option value="Likes Instagram">Likes Instagram</option>
+              <option value="Followers Facebook">Followers Facebook</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" style="align-items:center; justify-content:space-between;">
+          <div class="section-sub" style="margin:0;">Livraison & garantie selon le service choisi.</div>
+          <button class="btn primary" type="submit">Ajouter au panier</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Newsletter in footer -->
+  <footer>
+    <div class="container" style="display:grid; grid-template-columns: 1.2fr 1fr 1fr; gap:14px;">
+      <div>
+        <div class="brand" style="align-items:flex-start">
+          <div class="logo" style="width:28px;height:28px;border-radius:8px;">S</div>
+          <div><strong>SocialBoost</strong><div style="font-size:12px; color:var(--muted)">Boostez votre présence sociale</div></div>
+        </div>
+        <p class="section-sub" style="margin-top:6px">Restez informé des dernières promotions et conseils de croissance pour vos réseaux.</p>
+      </div>
+      <div>
+        <h4>Restez informé</h4>
+        <div class="newsletter">
+          <input class="input" id="newsletter-email" placeholder="Entrez votre email" />
+          <button class="btn primary" onclick="subscribe()">S'abonner</button>
+        </div>
+      </div>
+      <div>
+        <h4>Réseaux</h4>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <a href="#" aria-label="Instagram" class="chip">Instagram</a>
+          <a href="#" aria-label="TikTok" class="chip">TikTok</a>
+          <a href="#" aria-label="YouTube" class="chip">YouTube</a>
+          <a href="#" aria-label="Facebook" class="chip">Facebook</a>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center; color:var(--muted); padding:10px 0 0; font-size:12px;">
+      © <span id="year"></span> SocialBoost. Tous droits réservés.
+    </div>
+  </footer>
+
+  <div id="toast" role="status" aria-live="polite" ></div>
+
+  <script>
+    // Helpers
+    const toast = (msg) => {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      t.classList.add('animate');
+      t.style.display = 'block';
+      setTimeout(() => t.classList.remove('show'), 1800);
+    }
+
+    const $ = (sel) => document.querySelector(sel);
+
+    // Theme
+    const applyTheme = (mode) => {
+      document.documentElement.setAttribute('data-theme', mode);
+      localStorage.setItem('theme', mode);
+    };
+
+    const loadTheme = () => {
+      const t = localStorage.getItem('theme') || 'dark';
+      applyTheme(t);
+      $('#theme-toggle').textContent = t === 'dark' ? '🌗' : '🌞';
+    };
+
+    // Auth
+    const isAuthenticated = () => !!localStorage.getItem('socialboost_user');
+    const setAuthUI = () => {
+      const btn = document.getElementById('open-auth');
+      if (isAuthenticated()) {
+        btn.textContent = 'Tableau de bord';
+      } else {
+        btn.textContent = 'Se connecter';
+      }
+    };
+
+    const openAuth = () => {
+      document.getElementById('auth-modal').classList.add('open');
+      document.getElementById('auth-modal').setAttribute('aria-hidden','false');
+      switchAuthTab('login');
+    };
+    const closeAuth = () => {
+      document.getElementById('auth-modal').classList.remove('open');
+      document.getElementById('auth-modal').setAttribute('aria-hidden','true');
+    };
+
+    const switchAuthTab = (mode) => {
+      const loginBtn = $('#tab-login');
+      const signupBtn = $('#tab-signup');
+      if (mode === 'signup') {
+        loginBtn.classList.remove('active');
+        signupBtn.classList.add('active');
+        $('#name-field').style.display = 'block';
+        $('#auth-submit').textContent = 'S’inscrire';
+        $('#auth-status').textContent = '';
+        $('#auth-form').setAttribute('data-mode','signup');
+        // update fields
+      } else {
+        loginBtn.classList.add('active');
+        signupBtn.classList.remove('active');
+        $('#name-field').style.display = 'none';
+        $('#auth-submit').textContent = 'Se connecter';
+        $('#auth-status').textContent = '';
+        $('#auth-form').setAttribute('data-mode','login');
+      }
+    };
+
+    const submitAuth = (e) => {
+      e.preventDefault();
+      const mode = $('#auth-form').getAttribute('data-mode');
+      const email = $('#email-auth').value.trim();
+      const password = $('#password-auth').value;
+      if (mode === 'signup') {
+        const name = $('#name-auth').value.trim();
+        if (!name) { $('#auth-status').textContent = 'Veuillez saisir votre nom'; return; }
+        const user = { name, email, password };
+        localStorage.setItem('socialboost_user', JSON.stringify(user));
+        toast('Inscription réussie. Bienvenue ' + name + ' !');
+      } else {
+        const stored = JSON.parse(localStorage.getItem('socialboost_user') || 'null');
+        if (stored && stored.email === email && stored.password === password) {
+          toast('Connecté en tant que ' + stored.name);
+        } else {
+          // simple check: match email only, for demo
+          if (stored && stored.email === email) {
+            toast('Connexion réussie');
+          } else {
+            toast('Identifiants non reconnus');
+            return;
+          }
+        }
+        localStorage.setItem('socialboost_user', JSON.stringify({ ...stored, email }));
+      }
+      setAuthUI();
+      closeAuth();
+      renderDashboardState();
+    };
+
+    // Order flow
+    let currentOrderService = '';
+    const openOrder = (service, profile) => {
+      currentOrderService = service;
+      $('#order-title').textContent = 'Commander: ' + service;
+      $('#order-service').value = service;
+      $('#order-profile').value = profile || '';
+      document.getElementById('order-modal').classList.add('open');
+      document.getElementById('order-modal').setAttribute('aria-hidden','false');
+    };
+    const closeOrder = () => {
+      document.getElementById('order-modal').classList.remove('open');
+      document.getElementById('order-modal').setAttribute('aria-hidden','true');
+      $('#order-profile').value = '';
+    };
+    const closeOrderFromDashboard = () => { closeOrder(); };
+    const openOrderFromDashboard = () => { openOrder('Nouvelle commande', 'https://'); };
+
+    const processOrder = (e) => {
+      e.preventDefault();
+      if (!$('#order-profile').value) { toast('Veuillez entrer le lien du profil'); return; }
+      const service = $('#order-service').value;
+      // store in localStorage as "cart" item
+      const cart = JSON.parse(localStorage.getItem('socialboost_cart') || '[]');
+      cart.push({ service, profile: $('#order-profile').value, id: Date.now(), status: 'En attente' });
+      localStorage.setItem('socialboost_cart', JSON.stringify(cart));
+      closeOrder();
+      renderCartToast();
+      renderDashboardState();
+      toast('Commande ajoutée au panier (simulation)');
+    };
+
+    const renderCartToast = () => {
+      toast('Panier mis à jour');
+    };
+
+    // Newsletter
+    const subscribe = () => {
+      const email = document.getElementById('newsletter-email').value;
+      if (!email.includes('@')) { toast('Merci d’indiquer un email valide'); return; }
+      toast('Abonné à la newsletter');
+      document.getElementById('newsletter-email').value = '';
+    };
+
+    // Dashboard rendering
+    const renderDashboardState = () => {
+      const user = JSON.parse(localStorage.getItem('socialboost_user') || 'null');
+      const ongoingEl = document.getElementById('ongoing');
+      const historyEl = document.getElementById('history');
+      const cart = JSON.parse(localStorage.getItem('socialboost_cart') || '[]');
+      if (user) {
+        document.getElementById('dashboard-sub').textContent = 'Bienvenue, ' + user.name;
+      } else {
+        document.getElementById('dashboard-sub').textContent = 'Connectez-vous pour accéder à votre espace personnel.';
+      }
+      // Ongoing: show last cart item with status
+      const ongoing = cart.find(c => c.status === 'En attente') || null;
+      ongoingEl.textContent = ongoing ? ongoing.service + ' pour ' + ongoing.profile : 'Aucune commande en cours.';
+      // History: last 3 items
+      const hist = cart.slice(-3).map(c => c.service + ' • ' + c.profile).join('\\n');
+      historyEl.textContent = hist || 'Aucune commande passée.';
+      // Update graph could be simulated
+      // (keeping as static for simplicity)
+    };
+
+    // FAQ toggle
+    const toggleFaq = (el) => {
+      const body = el.nextElementSibling;
+      const isOpen = body.style.display === 'block';
+      body.style.display = isOpen ? 'none' : 'block';
+      el.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+    };
+
+    // Auth & initial load
+    document.addEventListener('DOMContentLoaded', () => {
+      // year
+      document.getElementById('year').textContent = new Date().getFullYear();
+      // nav highlight on scroll
+      const sections = ['home','services','pricing','testimonials','faq','contact','dashboard'];
+      const links = Array.from(document.querySelectorAll('#nav-links a'));
+      const onScroll = () => {
+        let current = '';
+        sections.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            if (rect.top <= 80 && rect.bottom >= 80) current = id;
+          }
+        });
+        links.forEach(a => a.classList.toggle('active', a.dataset.section === current));
+      };
+      window.addEventListener('scroll', onScroll);
+      onScroll();
+
+      // initial theme
+      loadTheme();
+      setAuthUI();
+      renderDashboardState();
+    });
+
+    // Nav & actions
+    $('#start-btn').addEventListener('click', () => {
+      document.getElementById('services').scrollIntoView({behavior:'smooth'});
+      if (!isAuthenticated()) openAuth();
+    });
+    $('#cta-booster').addEventListener('click', () => {
+      document.getElementById('services').scrollIntoView({behavior:'smooth'});
+      if (!isAuthenticated()) openAuth();
+    });
+
+    $('#open-auth').addEventListener('click', () => {
+      openAuth();
+    });
+
+    $('#theme-toggle').addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      $('#theme-toggle').textContent = next === 'dark' ? '🌗' : '🌞';
+    });
+
+    $('#nav-links a').forEach = Array.prototype.forEach; // no-op placeholder to satisfy lints
+
+    // Remove default anchor jump to preserve SPA feel
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', (e) => {
+        const id = a.getAttribute('href').substring(1);
+        const el = document.getElementById(id);
+        if (el) {
+          e.preventDefault();
+          el.scrollIntoView({behavior:'smooth'});
+        }
+      });
+    });
+
+    // Order plan selection
+    const selectPlan = (plan) => {
+      if (!isAuthenticated()) {
+        openAuth();
+        toast('Connectez-vous pour sélectionner une offre.');
+        return;
+      }
+      toast(plan + ' sélectionné. Procédez au paiement simulé.');
+      // Simulate adding a plan to cart
+      const cart = JSON.parse(localStorage.getItem('socialboost_cart') || '[]');
+      cart.push({ service: plan, profile: 'Profil démonstration', id: Date.now(), status: 'En attente' });
+      localStorage.setItem('socialboost_cart', JSON.stringify(cart));
+      renderDashboardState();
+    };
+
+    // Contact form submit
+    const submitContact = (e) => {
+      e.preventDefault();
+      const name = $('#name').value;
+      const email = $('#email').value;
+      const msg = $('#message').value;
+      if (!name || !email || !msg) {
+        toast('Veuillez remplir tous les champs.');
+        return;
+      }
+      toast('Message envoyé. Nous vous répondrons bientôt.');
+      $('#contact-form').reset();
+      // simulate chat intro
+      $('#live-chat').innerHTML += `<div class="message" style="margin:6px 0; text-align:right;">
+        <span style="background:#4cc9f0; color:white; padding:6px 8px; border-radius:12px; display:inline-block;">Merci ${name}, votre message a été reçu ✓</span>
+      </div>`;
+      $('#live-chat').scrollTop = $('#live-chat').scrollHeight;
+    };
+
+    // Chat
+    const sendChat = () => {
+      const input = $('#chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+      const chat = document.getElementById('live-chat');
+      chat.innerHTML += `<div class="message" style="margin:6px 0; text-align:right;">
+        <span style="background:#4caf50; color:white; padding:6px 8px; border-radius:12px; display:inline-block;">${text}</span>
+      </div>`;
+      input.value = '';
+      // automated reply
+      setTimeout(() => {
+        chat.innerHTML += `<div class="message" style="margin:6px 0; text-align:left;">
+          <span style="background:#333; color:white; padding:6px 8px; border-radius:12px; display:inline-block;">Nous revenons vers vous bientôt.</span>
+        </div>`;
+        chat.scrollTop = chat.scrollHeight;
+      }, 600);
+    };
+
+    // Order in dashboard quick
+    const openOrderFromDashboardBtn = () => openOrderFromDashboard();
+    window.openOrderFromDashboard = openOrderFromDashboardBtn;
+  </script>
+</body>
+</html>
