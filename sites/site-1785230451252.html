@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VidClip - découpe de vidéos avec sous-titres FR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg: #0b0e14;
+      --card: #141923;
+      --muted: #8a97b3;
+      --accent: #7c5cff;
+      --accent2: #00d4ff;
+      --green: #2bd576;
+      --red: #ff5c7a;
+      --surface: #1e2430;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto;
+      background: radial-gradient( circle at 20% -10%, rgba(124,92,255,.15) 0%, rgba(124,92,255,0) 40%), 
+                  radial-gradient( circle at 100% 0%, rgba(0,212,255,.15) 0%, rgba(0,212,255,0) 40%), 
+                  var(--bg);
+      color: #e9eefc;
+      display: flex;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .wrapper {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 0.9fr;
+      gap: 16px;
+    }
+    header.brand {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(28,32,60,.9), rgba(24,28,52,.9));
+      border: 1px solid rgba(124,92,255,.4);
+      box-shadow: 0 6px 18px rgba(0,0,0,.25);
+    }
+    header.brand h1 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: .4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    header.brand .badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: rgba(124,92,255,.25);
+      border: 1px solid rgba(124,92,255,.5);
+      color: #e6e0ff;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(20,26,43,.95), rgba(20,26,43,.75) 60%, rgba(20,26,43,.95));
+      border: 1px solid rgba(124,92,255,.4);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 6px 16px rgba(0,0,0,.25);
+    }
+
+    .section-title {
+      font-size: 14px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 8px;
+    }
+
+    .uploader {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+    }
+    .uploader input[type="file"]{
+      background: #111522;
+      color: #eaf1ff;
+      border: 1px solid #2b2f57;
+      padding: 12px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .video-area {
+      position: relative;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16/9;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    video#videoPreview {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+      display: block;
+    }
+    canvas#overlayCanvas {
+      display: none; /* used only during generation (captured via canvas) */
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      padding: 6px 0;
+    }
+    .slider-row {
+      display: grid;
+      grid-template-columns: 80px 1fr 80px;
+      align-items: center;
+      gap: 8px;
+    }
+    .slider-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+    }
+    input[type="range"] {
+      width: 100%;
+      appearance: none;
+      height: 8px;
+      border-radius: 6px;
+      background: #2b2f57;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: 2px solid #fff;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,.5);
+    }
+    .time-chip {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #1b1f3a;
+      color: #eaf1ff;
+      border: 1px solid #2b2f57;
+      text-align: center;
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      border: none;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .08s ease;
+    }
+    button.primary:active { transform: scale(0.98); }
+    button.secondary {
+      background: #1a1f37;
+      color: #e6eaff;
+      border: 1px solid #2b2f57;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .clips-list {
+      display: grid;
+      gap: 10px;
+    }
+    .clip-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(12,14,28,.9);
+      border: 1px solid #2b2f57;
+    }
+    .clip-info {
+      font-size: 13px;
+      color: #e9eaff;
+    }
+
+    @media (min-width: 900px){
+      .wrapper { grid-template-columns: 1.1fr 0.9fr; align-items: start; }
+    }
+    @media (max-width: 860px){
+      .wrapper { grid-template-columns: 1fr; }
+      .video-area { aspect-ratio: 16/9; }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <header class="brand" aria-label="VidClip header">
+      <h1>VidClip <span class="badge">Mon outil de découpe</span></h1>
+      <span class="badge" style="font-weight:600; background: rgba(0,212,255,.25); border-color: rgba(0,212,255,.5);">TikTok-like Editor</span>
+    </header>
+
+    <section class="panel" id="viewerPanel">
+      <div class="section-title" style="margin-bottom:6px;">Uploader</div>
+      <div class="uploader">
+        <input id="videoInput" type="file" accept="video/*" />
+        <span class="time-chip" id="videoInfo" title="Durée du fichier après chargement">Aucun fichier</span>
+      </div>
+
+      <div class="video-area" id="videoArea" aria-label="Aperçu de la vidéo">
+        <video id="videoPreview" controls playsinline></video>
+        <canvas id="overlayCanvas"></canvas>
+      </div>
+
+      <div class="controls" aria-label="Contrôles de découpe">
+        <div class="slider-row">
+          <div class="slider-label">Début</div>
+          <input id="startSlider" type="range" min="0" max="1" value="0" step="0.1" />
+          <div class="time-chip" id="startTimeLabel">00:00</div>
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-label">Fin</div>
+          <input id="endSlider" type="range" min="0" max="1" value="1" step="0.1" />
+          <div class="time-chip" id="endTimeLabel">00:00</div>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center; justify-content: space-between;">
+          <button class="primary" id="addClipBtn" title="Ajouter ce clip à la liste">Ajouter ce clip à la liste</button>
+          <span style="font-size:12px; color:var(--muted);">Sélectionnez les temps puis ajoutez un clip.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="clipsPanel" aria-label="Liste des clips">
+      <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Liste des clips</span>
+        <span class="time-chip" id="clipsCount">0 clip(s)</span>
+      </div>
+      <div class="clips-list" id="clipsList">
+        <!-- Clips seront insérés ici -->
+      </div>
+    </section>
+  </div>
+
+  <script src="https://js.puter.com/v2/"></script>
+  <script>
+    // Eléments DOM
+    const videoInput = document.getElementById('videoInput');
+    const videoEl = document.getElementById('videoPreview');
+    const canvasEl = document.getElementById('overlayCanvas');
+    const ctx = canvasEl.getContext('2d');
+
+    const addClipBtn = document.getElementById('addClipBtn');
+    const startSlider = document.getElementById('startSlider');
+    const endSlider = document.getElementById('endSlider');
+    const startTimeLabel = document.getElementById('startTimeLabel');
+    const endTimeLabel = document.getElementById('endTimeLabel');
+    const videoInfo = document.getElementById('videoInfo');
+    const clipsListEl = document.getElementById('clipsList');
+    const clipsCountEl = document.getElementById('clipsCount');
+
+    let videoFile = null;
+    let videoURL = null;
+    let duration = 0;
+
+    let clips = [];
+    let clipIdCounter = 1;
+
+    // Transcription data
+    let cues = null; // parsed SRT cues: [{start, end, text}, ...]
+    let transcribed = false;
+    let transcribing = false;
+    let transcribedBlobURL = null;
+
+    // Initialize
+    function formatTime(seconds) {
+      if (Number.isNaN(seconds) || seconds < 0) seconds = 0;
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    function updateVideoInfo() {
+      if (duration && isFinite(duration)) {
+        videoInfo.textContent = `Durée: ${formatTime(duration)}`;
+        // Initialize sliders ranges
+        startSlider.max = duration;
+        endSlider.max = duration;
+        if (startSlider.value > duration) startSlider.value = 0;
+        if (Number(endSlider.value) <= Number(startSlider.value)) endSlider.value = duration;
+        updateTimeLabels();
+      }
+    }
+
+    function updateTimeLabels() {
+      const s = Number(startSlider.value);
+      const e = Number(endSlider.value);
+      startTimeLabel.textContent = formatTime(s);
+      endTimeLabel.textContent = formatTime(e);
+    }
+
+    function humanizeClipsCount() {
+      clipsCountEl.textContent = `${clips.length} clip(s)`;
+    }
+
+    // Load video file
+    videoInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      videoFile = file;
+      if (videoURL) URL.revokeObjectURL(videoURL);
+      videoURL = URL.createObjectURL(file);
+      videoEl.src = videoURL;
+      await videoEl.play().catch(() => {}); // attempt autoplay
+      // Wait for metadata
+      if (videoEl.readyState >= 1) {
+        duration = videoEl.duration;
+        updateVideoInfo();
+        videoEl.pause();
+      } else {
+        videoEl.onloadedmetadata = () => {
+          duration = videoEl.duration;
+          updateVideoInfo();
+          videoEl.pause();
+        };
+      }
+      // Prepare canvas size after video metadata
+      videoEl.addEventListener('loadedmetadata', () => {
+        const w = videoEl.videoWidth;
+        const h = videoEl.videoHeight;
+        if (w && h) {
+          canvasEl.width = w;
+          canvasEl.height = h;
+        }
+      }, { once: true });
+    });
+
+    // Sliders handlers
+    function clampSliderValues() {
+      const s = Number(startSlider.value);
+      const e = Number(endSlider.value);
+      if (e < s) {
+        endSlider.value = s;
+      }
+      updateTimeLabels();
+    }
+
+    startSlider.addEventListener('input', () => {
+      clampSliderValues();
+    });
+    endSlider.addEventListener('input', () => {
+      clampSliderValues();
+    });
+
+    // Add clip to list
+    addClipBtn.addEventListener('click', () => {
+      if (!videoFile) {
+        alert('Veuillez charger une vidéo d’abord.');
+        return;
+      }
+      const s = Number(startSlider.value);
+      const e = Number(endSlider.value);
+      if (e - s <= 0) {
+        alert('La fin doit être après le début.');
+        return;
+      }
+      const clip = {
+        id: clipIdCounter++,
+        start: s,
+        end: e,
+        duration: e - s,
+        status: 'pending', // pending | generating | ready
+        blobURL: null
+      };
+      clips.push(clip);
+      renderClipsList();
+      humanizeClipsCount();
+    });
+
+    // Render clips list
+    function renderClipsList() {
+      clipsListEl.innerHTML = '';
+      clips.forEach((clip) => {
+        const item = document.createElement('div');
+        item.className = 'clip-item';
+        const info = document.createElement('div');
+        info.className = 'clip-info';
+        info.textContent = `Clip ${clip.id}: ${formatTime(clip.start)} - ${formatTime(clip.end)} (${formatTime(clip.duration)})`;
+        const actions = document.createElement('div');
+        actions.style.display = 'flex';
+        actions.style.gap = '8px';
+        if (clip.status === 'ready' && clip.blobURL) {
+          const dl = document.createElement('a');
+          dl.href = clip.blobURL;
+          const safeName = `clip_${clip.id}.webm`;
+          dl.download = safeName;
+          dl.className = 'secondary';
+          dl.textContent = 'Télécharger';
+          dl.style.color = '#eaf6ff';
+          dl.style.padding = '8px 12px';
+          dl.style.borderRadius = '8px';
+          dl.style.background = '#1a1f37';
+          dl.style.border = '1px solid #2b2f57';
+          actions.appendChild(dl);
+        } else if (clip.status === 'generating') {
+          const span = document.createElement('span');
+          span.textContent = 'Génération…';
+          span.style.fontSize = '12px';
+          span.style.color = '#a9b4d0';
+          actions.appendChild(span);
+        } else {
+          const genBtn = document.createElement('button');
+          genBtn.className = 'secondary';
+          genBtn.textContent = 'Générer';
+          genBtn.addEventListener('click', () => generateClip(clip));
+          actions.appendChild(genBtn);
+        }
+        item.appendChild(info);
+        item.appendChild(actions);
+        clipsListEl.appendChild(item);
+      });
+    }
+
+    // Transcription & parsing
+    async function ensureCues() {
+      if (cues) return cues;
+      if (!videoFile) throw new Error('Aucun fichier vidéo chargé pour transcription.');
+      if (transcribing) {
+        // wait until current transcription finishes
+        return new Promise((resolve) => {
+          const check = setInterval(() => {
+            if (cues) {
+              clearInterval(check);
+              resolve(cues);
+            }
+          }, 200);
+        });
+      }
+      transcribing = true;
+      try {
+        // puter.ai.speech2txt with fr language and SRT format
+        const srt = await puter.ai.speech2txt(videoFile, { language: 'fr', response_format: 'srt' });
+        cues = parseSRTtoCues(srt);
+        transcribed = true;
+        transcribing = false;
+        return cues;
+      } catch (err) {
+        transcribing = false;
+        console.error('Transcription failed:', err);
+        throw err;
+      }
+    }
+
+    function parseSRTtoCues(srt) {
+      const arr = [];
+      // Split by blocks separated by blank line
+      const blocks = srt.split(/\r?\n\r?\n/);
+      for (const block of blocks) {
+        const lines = block.split(/\r?\n/).filter(l => l.trim() !== '');
+        if (lines.length >= 2) {
+          // find time line with -->
+          const timeLine = lines.find(l => l.includes('-->')) || lines[1];
+          const times = timeLine.split(' --> ');
+          if (times.length === 2) {
+            const start = parseSRTTime(times[0]);
+            const end = parseSRTTime(times[1]);
+            const textLines = lines.slice(lines.indexOf(timeLine) + 1);
+            const text = textLines.join('\n');
+            if (!Number.isNaN(start) && !Number.isNaN(end)) {
+              arr.push({ start, end, text });
+            }
+          }
+        }
+      }
+      // sort by start
+      arr.sort((a,b) => a.start - b.start);
+      return arr;
+    }
+
+    function parseSRTTime(ts) {
+      // ts format: HH:MM:SS,ms or MM:SS,ms
+      const m = ts.match(/(\d+):(\d+):(\d+),(\d+)/);
+      if (m) {
+        const h = parseInt(m[1], 10);
+        const mm = parseInt(m[2], 10);
+        const s = parseInt(m[3], 10);
+        const ms = parseInt(m[4], 10);
+        return h * 3600 + mm * 60 + s + ms / 1000;
+      }
+      const m2 = ts.match(/(\d+):(\d+),(\d+)/);
+      if (m2) {
+        const mm = parseInt(m2[1], 10);
+        const s = parseInt(m2[2], 10);
+        const ms = parseInt(m2[3], 10);
+        return mm * 60 + s + ms / 1000;
+      }
+      return NaN;
+    }
+
+    // Rendering subtitles onto canvas during generation
+    function renderSubtitleOnto(ctx, tInSec, w, h) {
+      if (!cues || cues.length === 0) return;
+      // Find active cue
+      const cue = cues.find(c => tInSec >= c.start && tInSec <= c.end);
+      if (!cue) return;
+      const lines = cue.text.split('\n');
+      // Draw semi-transparent black background bar
+      const barHeight = 120;
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(0, h - barHeight, w, barHeight);
+      // Draw text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 40px Inter, Arial';
+      ctx.textAlign = 'center';
+      const lineHeight = 48;
+      let y = h - barHeight / 2 - ((lines.length - 1) * lineHeight) / 2;
+      for (const line of lines) {
+        // Basic wrap if too long
+        wrapAndDraw(ctx, line, w / 2, y);
+        y += lineHeight;
+      }
+      ctx.restore();
+    }
+
+    // Simple text wrap for canvas center-aligned lines
+    function wrapAndDraw(ctx, text, x, y) {
+      // Try to fit text by splitting if too long
+      const maxWidth = Math.min(2000, ctx.canvas.width - 40);
+      const words = text.split(' ');
+      let line = '';
+      const linesToDraw = [];
+      for (const word of words) {
+        const test = line ? line + ' ' + word : word;
+        const w = ctx.measureText(test).width;
+        if (w > maxWidth && line !== '') {
+          linesToDraw.push(line);
+          line = word;
+        } else {
+          line = test;
+        }
+      }
+      if (line) linesToDraw.push(line);
+      // Draw lines, centered
+      for (let i = 0; i < linesToDraw.length; i++) {
+        ctx.fillText(linesToDraw[i], x, y + i * 40);
+      }
+    }
+
+    // Generate a clip: use canvas to render frames with subtitles
+    async function generateClip(clip) {
+      if (!videoFile) {
+        alert('Veuillez charger une vidéo.');
+        return;
+      }
+      clip.status = 'generating';
+      renderClipsList();
+
+      try {
+        const readyCues = await ensureCues();
+        // Prepare canvas size according to video
+        const w = videoEl.videoWidth || 1280;
+        const h = videoEl.videoHeight || 720;
+        if (!w || !h) {
+          alert('Impossible d'obtenir les dimensions de la vidéo. Essayez de ré- charger.');
+          clip.status = 'pending';
+          renderClipsList();
+          return;
+        }
+        canvasEl.width = w;
+        canvasEl.height = h;
+
+        // Setup MediaRecorder from canvas
+        const stream = canvasEl.captureStream(30); // 30 fps
+        let chunks = [];
+        const mime = 'video/webm; codecs=vp9';
+        let rec;
+        try {
+          rec = new MediaRecorder(stream, { mimeType: mime });
+        } catch (e) {
+          try {
+            rec = new MediaRecorder(stream, { mimeType: 'video/webm' });
+          } catch (err) {
+            alert('Votre navigateur ne prend pas en charge l’enregistrement WebM.');
+            clip.status = 'pending';
+            renderClipsList();
+            return;
+          }
+        }
+
+        rec.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
+        rec.onstop = () => {
+          const blob = new Blob(chunks, { type: mime });
+          clip.blobURL = URL.createObjectURL(blob);
+          clip.status = 'ready';
+          // Cleanup frames
+          renderClipsList();
+        };
+        rec.onerror = (ev) => {
+          console.error('MediaRecorder error', ev);
+          clip.status = 'pending';
+          renderClipsList();
+        };
+
+        // Prepare video playback for the clip
+        videoEl.pause();
+        videoEl.currentTime = clip.start;
+        videoEl.muted = true;
+        videoEl.playsInline = true;
+        // Start recording right away
+        rec.start();
+
+        // Rendering loop: draw video frame + overlay subtitles to canvas
+        let startTime = performance.now();
+        let lastFrameTime = 0;
+        const clipDuration = clip.end - clip.start;
+        let finished = false;
+
+        // Play video to drive frames
+        videoEl.play().catch(() => { /* ignore autoplay policy */ });
+
+        function drawFrame() {
+          if (finished) return;
+          // Draw current video frame if available
+          if (videoEl.videoWidth && videoEl.videoHeight) {
+            ctx.drawImage(videoEl, 0, 0, w, h);
+            // Time relative to clip
+            const t = videoEl.currentTime - clip.start;
+            // Subtitles
+            renderSubtitleOnto(ctx, t, w, h);
+          }
+          // Stop when end reached
+          if (videoEl.currentTime >= clip.end) {
+            finished = true;
+            // Pause and stop rec
+            try { videoEl.pause(); } catch (e) {}
+            rec.stop();
+            return;
+          }
+          // Continue loop
+          requestAnimationFrame(drawFrame);
+        }
+
+        // Wait for video to be ready to play
+        const waitForCanPlay = () => {
+          if (videoEl.readyState >= 2) {
+            // Start the loop
+            drawFrame();
+          } else {
+            setTimeout(waitForCanPlay, 100);
+          }
+        };
+        waitForCanPlay();
+
+      } catch (err) {
+        console.error('Erreur génération clip:', err);
+        clip.status = 'pending';
+        renderClipsList();
+      }
+    }
+
+    // Bind generate action per clip
+    // (We re-render each time; attach event when creating list items)
+    function attachGenerateButtons() {
+      // Not strictly needed since we re-create each render
+    }
+
+    // Initial render
+    renderClipsList();
+
+    // Hook into script-level functions (for use inside generateClip)
+    // Expose generateClip to global scope by binding to window
+    window.generateClip = generateClip;
+
+  </script>
+</body>
+</html>
