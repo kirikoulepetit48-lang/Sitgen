@@ -103,6 +103,9 @@
       <button class="icon-btn" id="publishBtn" title="Publier" disabled>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9m0 0l-4 4m4-4l4 4M4 4h16"/></svg>
       </button>
+      <button class="icon-btn" id="orderBtn" title="Commander ce site" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+      </button>
       <button class="icon-btn" id="newBtn" title="Nouveau projet">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
       </button>
@@ -129,7 +132,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1305" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </button>
         </div>
-        <div class="hint">Propulsé par Puter.js — 100% gratuit, sans clé</div>
+        <div class="hint">SiteGen — Lubumbashi, RDC · Propulsé par Puter.js</div>
       </div>
     </div>
     <div class="pane" id="previewPane">
@@ -161,12 +164,15 @@
   const urlFake = document.getElementById('urlFake');
   const downloadBtn = document.getElementById('downloadBtn');
   const publishBtn = document.getElementById('publishBtn');
+  const orderBtn = document.getElementById('orderBtn');
   const newBtn = document.getElementById('newBtn');
   const tabs = document.querySelectorAll('.tab');
   const panes = { chat: document.getElementById('chatPane'), preview: document.getElementById('previewPane'), code: document.getElementById('codePane') };
   let history = [];
   let currentHTML = '';
   let generating = false;
+  let lastPrompt = '';
+  let lastPublishedUrl = '';
   tabs.forEach(t => {
     t.addEventListener('click', () => {
       tabs.forEach(x => x.classList.remove('active'));
@@ -249,6 +255,7 @@
     urlFake.textContent = label || 'site-genere.html';
     downloadBtn.disabled = false;
     publishBtn.disabled = false;
+    orderBtn.disabled = false;
     saveHistoryLocal();
   }
   function saveHistoryLocal(){
@@ -264,6 +271,8 @@
     promptInput.style.height = 'auto';
     addMessage('user', val);
     history.push({role:'user', content: val});
+    lastPrompt = val;
+    lastPublishedUrl = '';
     addThinking();
     generating = true;
     sendBtn.disabled = true;
@@ -331,6 +340,7 @@
         throw new Error(err.message || ('Erreur ' + res.status));
       }
       const liveUrl = 'https://' + owner + '.github.io/' + repo + '/' + filename;
+      lastPublishedUrl = liveUrl;
       addMessage('ai', 'Site publié ✓ Voici ton lien : ' + liveUrl);
     }catch(err){
       removeThinking();
@@ -339,6 +349,17 @@
     }finally{
       publishBtn.disabled = false;
     }
+  });
+  orderBtn.addEventListener('click', () => {
+    if(!currentHTML) return;
+    let message = 'Bonjour, je souhaite commander ce site créé avec SiteGen.\n\n';
+    message += 'Description du site : ' + (lastPrompt || 'non précisée') + '\n\n';
+    if(lastPublishedUrl){
+      message += 'Aperçu en ligne : ' + lastPublishedUrl + '\n\n';
+    }
+    message += 'Merci de me recontacter pour finaliser la commande.';
+    const waUrl = 'https://wa.me/243979312394?text=' + encodeURIComponent(message);
+    window.open(waUrl, '_blank');
   });
   newBtn.addEventListener('click', () => {
     if(!confirm('Effacer le site actuel et recommencer ?')) return;
@@ -357,6 +378,7 @@
     urlFake.textContent = 'en attente de génération...';
     downloadBtn.disabled = true;
     publishBtn.disabled = true;
+    orderBtn.disabled = true;
     localStorage.removeItem('sitegen_last_html');
     localStorage.removeItem('sitegen_history');
     goToTab('chat');
@@ -376,4 +398,4 @@
 })();
 </script>
 </body>
-  </html>
+    </html>
