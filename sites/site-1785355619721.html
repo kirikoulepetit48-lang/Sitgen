@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StickAdvice — Générateur de vidéos conseils</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg1: #0b0b0f;
+      --bg2: #15161c;
+      --card: #0b1020;
+      --text: #ffffff;
+      --muted: #cbd5e1;
+      --accent: #8bd3ff;
+    }
+    * {box-sizing: border-box}
+    html, body {height: 100%}
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto;
+      color: #fff;
+      background: linear-gradient(135deg, #0f1b4c 0%, #1e3c72 40%, #2a5298 100%);
+      min-height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    /* Admin banner (discret) */
+    .admin-banner {
+      position: fixed;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999;
+      background: rgba(0,0,0,.28);
+      color: #e6f2ff;
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.25);
+      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+      display: none; /* hidden by default, shown when ?admin=1234 */
+      pointer-events: none;
+    }
+
+    /* Layout container */
+    .app {
+      width: 100%;
+      max-width: 980px;
+      padding: 16px;
+      padding-top: 48px; /* room for admin banner if shown */
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    header {
+      text-align: center;
+      padding: 8px 0 4px;
+    }
+    header h1 {
+      margin: 0;
+      font-weight: 800;
+      font-size: 28px;
+      letter-spacing: .5px;
+    }
+    header p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* Stage / Canvas area with dark textured background */
+    .stage-wrap {
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      border-radius: 20px;
+      overflow: hidden;
+      position: relative;
+      /* Dark textured background (grain + subtle stripes) */
+      background: #0b0b0f;
+      background-image:
+        radial-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 6px 6px, 100% 6px;
+      border: 1px solid rgba(255,255,255,.15);
+      box-shadow: 0 8px 30px rgba(0,0,0,.25);
+    }
+    #stage {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: transparent;
+    }
+
+    .panel {
+      background: rgba(0,0,0,.28);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      width: 100%;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.25);
+      background: rgba(255,255,255,.08);
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    input:focus, textarea:focus {
+      border-color: #88eaff;
+      box-shadow: 0 0 0 4px rgba(136,234,255,.15);
+    }
+    .btn {
+      background: #6ed2ff;
+      color: #04111a;
+      border: none;
+      padding: 12px 14px;
+      border-radius: 999px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .2s ease;
+    }
+    .btn.secondary {
+      background: rgba(255,255,255,.25);
+      color: #0a1020;
+    }
+    .btn:active { transform: scale(0.98) }
+
+    .tips-area {
+      background: rgba(0,0,0,.28);
+      border-radius: 12px;
+      padding: 10px 12px;
+      min-height: 54px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow: hidden;
+    }
+    #liveTip {
+      font-size: clamp(18px, 5vw, 28px);
+      font-weight: 800;
+      text-align: center;
+      min-height: 28px;
+      padding: 4px 8px;
+      display: inline-block;
+      width: 100%;
+      line-height: 1.15;
+      background: transparent; /* transparent background behind the text */
+      /* This element is hidden for the canvas text rendering, but kept for compatibility. */
+      display: none;
+    }
+    #tipsList {
+      font-size: 12px;
+      color: #e6eefc;
+      opacity: .95;
+    }
+
+    .paywall {
+      margin-top: 6px;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(0,0,0,.25);
+      border: 1px solid rgba(255,255,255,.25);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .paywall .note { font-size: 12px; color: #e9eefe; opacity: .95; margin: 0 }
+    .unlock-row { display: flex; gap: 8px; align-items: center; }
+
+    .status { font-size: 12px; color: #ffd6d6; min-height: 16px; }
+
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: rgba(255,255,255,.7);
+      margin: 8px 0 16px;
+    }
+
+    @media (min-width: 720px) {
+      .content { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start}
+      .panel { padding: 14px; }
+    }
+
+    /* Neon text styling for dynamic tip words - kept for compatibility in code references if needed elsewhere */
+    .neon { font-family: Inter, sans-serif; font-weight: 800; }
+    .neon .word {
+      display: inline-block;
+      padding: 0 3px;
+      /* gradient per word is set inline via style attribute on span */
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+      font-size: clamp(16px, 5vw, 26px);
+      line-height: 1.15;
+      font-weight: 800;
+    }
+  </style>
+</head>
+<body>
+  <div id="adminBanner" class="admin-banner" aria-live="polite" style="display:none;">
+    Code for this video::
+  </div>
+
+  <div class="app">
+    <header>
+      <h1>StickAdvice</h1>
+      <p>Générateur de vidéos "conseils" avec un stick figure animé</p>
+    </header>
+
+    <section class="stage-wrap panel" aria-label="Studio StickAdvice" style="align-items: center; justify-content: center;">
+      <canvas id="stage" width="720" height="1280"></canvas>
+    </section>
+
+    <section class="panel" aria-label="Contrôles StickAdvice" style="min-height: 0;">
+      <div class="form-row" style="flex-direction:column; gap:10px;">
+        <input id="subject" placeholder="Ex: Comment économiser de l'argent" />
+        <div class="form-row" style="gap:8px;">
+          <button id="generate" class="btn" style="flex:1">Générer les conseils</button>
+        </div>
+      </div>
+
+      <div class="tips-area" id="tips" aria-live="polite" style="margin-top:6px;">
+        <div id="liveTip" class="neon"></div>
+        <div id="tipsList" style="margin-top:6px; color:#e9f2ff; opacity:.95;"></div>
+      </div>
+
+      <div class="paywall" id="paywall" style="display:flex; flex-direction:column;">
+        <button id="download" class="btn" disabled>Télécharger la vidéo complète sans watermark — 2000 FC</button>
+        <p class="note" style="margin:0; font-size:12px;">
+          Envoie 2000 FC via Airtel Money ou Orange Money au 0979312394
+        </p>
+        <a href="https://wa.me/243979312394?text=Bonjour%2C%20j%20ai%20envoy%C3%A9%20le%20paiement%20pour%20StickAdvice%2C%20voici%20ma%20capture%20d%27%C3%A9cran" target="_blank" rel="noopener" class="btn" aria-label="Contacter sur WhatsApp">Contacter sur WhatsApp</a>
+        <div class="unlock-row" style="width:100%;">
+          <input id="unlock" placeholder="Entrer le code de déblocage" />
+          <button id="unlockBtn" class="btn secondary" style="white-space:nowrap;">Débloquer</button>
+        </div>
+        <span id="unlockStatus" class="status" aria-live="polite"></span>
+
+        <!-- Recording status/output -->
+        <div id="recordStatus" class="status" style="display:none; margin-top:6px;"></div>
+      </div>
+    </section>
+
+    <footer class="footer" aria-label="Pied de page">
+      StickAdvice • Version locale. Vidéos en WebM (prévisualisation)
+    </footer>
+  </div>
+
+  <script>
+  // StickAdvice - enhanced single-file app with unique per-video unlock code
+  (function(){
+    // Admin mode detection
+    const urlParams = new URLSearchParams(window.location.search);
+    const adminParam = urlParams.get('admin');
+    const isAdminMode = (adminParam === '1234');
+    const adminBanner = document.getElementById('adminBanner');
+    if (isAdminMode && adminBanner) {
+      adminBanner.style.display = 'block';
+    }
+
+    // Elements
+    const subjectInput = document.getElementById('subject');
+    const generateBtn = document.getElementById('generate');
+    const stageCanvas = document.getElementById('stage');
+    const liveTipEl = document.getElementById('liveTip');
+    const tipsListEl = document.getElementById('tipsList');
+    const paywallEl = document.getElementById('paywall');
+    const downloadBtn = document.getElementById('download');
+    const unlockInput = document.getElementById('unlock');
+    const unlockBtn = document.getElementById('unlockBtn');
+    const unlockStatus = document.getElementById('unlockStatus');
+    const recordStatusEl = document.getElementById('recordStatus');
+    let unlockOK = false;
+
+    // Unlock code state (per-video)
+    let currentVideoCode = '';
+    const SECRET_WORD = 'LUBUM2026';
+    function computeCodeForSubject(subject){
+      const s = (subject || '') + SECRET_WORD;
+      let hash = 0;
+      for (let i = 0; i < s.length; i++) {
+        hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+      }
+      let code = hash.toString(36).toUpperCase();
+      code = code.padStart(6, '0');
+      if (code.length > 6) code = code.slice(-6);
+      return code;
+    }
+
+    // Canvas / rendering state
+    const ctx = stageCanvas.getContext('2d');
+    let tips = [];
+    let currentTipIndex = 0;
+    let animating = false;
+
+    // Neon text reveal state (canvas-driven)
+    let revealInterval = null;
+    let currentTipWords = [];
+    let displayedWordCount = 0;
+
+    // Animation state
+    let twoPeopleMode = false;
+
+    // Character pose / animation state
+    let currentAngles = {
+      headTilt: 0,
+      torsoTilt: 0,
+      leftArm: 0,
+      rightArm: 0,
+      leftLeg: 0,
+      rightLeg: 0
+    };
+    let targetAngles = { ...currentAngles };
+    let poseIndex = 0;
+    let poseTimer = null;
+    const poses = [
+      // Idle
+      { headTilt: 0, torsoTilt: 0, leftArm: 0, rightArm: 0, leftLeg: 0, rightLeg: 0 },
+      // Thinking / contact chin
+      { headTilt: 0, torsoTilt: 0, leftArm: 0, rightArm: 0.8, leftLeg: 0, rightLeg: 0 },
+      // Wave / expressive
+      { headTilt: 0.15, torsoTilt: 0.05, leftArm: -1.0, rightArm: 0.7, leftLeg: 0.2, rightLeg: 0.2 },
+      // Walking-like motion
+      { headTilt: -0.05, torsoTilt: 0.15, leftArm: 0.6, rightArm: -0.6, leftLeg: 0.6, rightLeg: -0.6 },
+      // Pointing
+      { headTilt: 0.0, torsoTilt: 0.0, leftArm: 0.0, rightArm: 1.2, leftLeg: 0.0, rightLeg: 0.0 }
+    ];
+
+    // Recording / audio / capture
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecording = false;
+    let audioCtx = null;
+    let narrationOsc = null;
+    let narrationGain = null;
+    let narrationMuted = false;
+    let videoStreamTrack = null;
+    let combinedStream = null;
+    let recordingStartedAt = 0;
+
+    // Helpers
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const w = stageCanvas.clientWidth;
+      const h = stageCanvas.clientHeight;
+      stageCanvas.width = Math.floor(w * dpr);
+      stageCanvas.height = Math.floor(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
+    // Background grain overlay draw (simple, lightweight)
+    function drawGrainTexture() {
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.02)';
+      const w = stageCanvas.clientWidth;
+      const h = stageCanvas.clientHeight;
+      for (let i = 0; i < 40; i++) {
+        const x = Math.random() * w;
+        const y = Math.random() * h;
+        ctx.fillRect(x, y, 1, 1);
+      }
+      ctx.restore();
+    }
+
+    // Tip fetch and neon text rendering (canvas-based)
+    function tipSuggestsTwoPeople(text) {
+      if (!text) return false;
+      const lower = text.toLowerCase();
+      const keywords = ['relation', 'relationnel', 'amour', 'couple', 'relationnel', 'ensemble', 'duo', 'partenaires', 'rencontre', 'interaction', 'communication'];
+      return keywords.some(k => lower.includes(k));
+    }
+
+    function gradientForIndex(i) {
+      const palettes = [
+        ['#00e5ff', '#0066ff'],
+        ['#39ff14', '#00ff88'],
+        ['#ff2ddf', '#ffb703'],
+        ['#7c3aed', '#22d3ee'],
+      ];
+      const [c1, c2] = palettes[i % palettes.length];
+      return [c1, c2];
+    }
+
+    function escapeHtml(s){
+      return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    // Draw tip text directly on the canvas
+    function drawTipOnCanvas(ctx, w, h) {
+      if (!tips || tips.length === 0) return;
+      const wordsToDraw = currentTipWords.slice(0, Math.max(0, displayedWordCount));
+      if (wordsToDraw.length === 0) return;
+
+      // Text style
+      const marginLeft = w * 0.08;
+      const rightMargin = w * 0.92;
+      const maxLineWidth = w * 0.84;
+      const fontSize = Math.max(16, Math.min(40, Math.floor(h * 0.04)));
+      const lineHeight = fontSize * 1.25;
+      ctx.font = `800 ${fontSize}px Inter, sans-serif`;
+      ctx.textBaseline = 'middle';
+      // Start near the bottom area
+      let x = marginLeft;
+      let y = h * 0.9;
+
+      // Different words may go to multiple lines
+      for (let i = 0; i < wordsToDraw.length; i++) {
+        const word = wordsToDraw[i];
+        const wWord = ctx.measureText(word).width;
+        // wrap to next line if needed
+        if (x + wWord > maxLineWidth) {
+          x = marginLeft;
+          y += lineHeight;
+          // if too far down, stop drawing more words
+          if (y > h - lineHeight * 0.5) break;
+        }
+
+        const [c1, c2] = gradientForIndex(i);
+        const g = ctx.createLinearGradient(x, y - fontSize * 0.3, x + wWord, y);
+        g.addColorStop(0, c1);
+        g.addColorStop(1, c2);
+
+        // Neon glow
+        ctx.fillStyle = g;
+        ctx.shadowColor = c2;
+        ctx.shadowBlur = 18;
+
+        ctx.fillText(word, x, y);
+
+        // advance x
+        const spaceWidth = ctx.measureText(' ').width;
+        x += wWord + spaceWidth * 0.95;
+      }
+
+      // Reset shadows to default
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = '#fff';
+    }
+
+    // Neon text reveal state
+    function startTipReveal(index) {
+      if (!tips || index >= tips.length) return;
+      currentTipIndex = index;
+      const tip = tips[index];
+      currentTipWords = tip.trim().split(/\s+/);
+      displayedWordCount = 0;
+
+      if (revealInterval) clearInterval(revealInterval);
+      revealInterval = setInterval(() => {
+        const step = Math.random() < 0.5 ? 1 : 2;
+        displayedWordCount = Math.min(currentTipWords.length, displayedWordCount + step);
+
+        // When a tip completes, advance to next after a short delay
+        if (displayedWordCount >= currentTipWords.length) {
+          clearInterval(revealInterval);
+          revealInterval = null;
+          setTimeout(() => {
+            if (index + 1 < tips.length) startTipReveal(index + 1);
+          }, 1000);
+        }
+      }, 260);
+    }
+
+    // Initialize from tips
+    function fetchTips(subject) {
+      // Hard reset
+      tips = [];
+      currentTipIndex = 0;
+      // Clear on-screen tip quickly
+      // liveTipEl is hidden; drawing is on canvas
+      // UX: indicate loading (could be extended)
+      // Simulated API call
+      return fetch('https://api.pollinations.ai/prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: `Donne 3 à 5 conseils courts et percutants sur le sujet : ${subject}. Chaque conseil est une phrase concise et utile.` })
+      })
+      .then(res => res.json())
+      .then(data => {
+        let text = '';
+        if (typeof data === 'string') text = data;
+        else if (data && data.text) text = data.text;
+        else if (Array.isArray(data)) text = data.join('\n');
+        else if (data?.choices?.[0]?.text) text = data.choices[0].text;
+        else text = '';
+
+        let lines = text.split(/\n|•|- /).map(s => s.trim()).filter(s => s);
+        if (lines.length < 3) {
+          lines = [
+            `Pensez à ${subject} et restez simple.`,
+            `Planifiez 3 actions concrètes.`,
+            `Restez bref et impactant.`
+          ];
+          if (lines.length < 3) lines.push('Ajoutez d’autres détails, si nécessaire.');
+        }
+        tips = lines.slice(0, 5);
+        // Start with the first tip
+        startTipReveal(0);
+        // Update two-people mode based on first tip
+        twoPeopleMode = tipSuggestsTwoPeople(tips[0] || '');
+        // Return success
+        return true;
+      }).catch(() => {
+        tips = [
+          `Réfléchissez à ${subject} en 3 actions simples.`,
+          `Restez concis et percutant.`,
+          `Passez à l’action rapidement.`
+        ];
+        startTipReveal(0);
+        twoPeopleMode = tipSuggestsTwoPeople(tips[0] || '');
+        return true;
+      });
+    }
+
+    // Initialize: start with empty stage, then user clicks to generate
+    function initCanvasSize() { resizeCanvas(); }
+    window.addEventListener('resize', () => { resizeCanvas(); });
+    initCanvasSize();
+
+    // Kick off the main loop (no tips yet) - we will start animation after tips load
+    // Animation loop
+    // We'll start without a hard stop; we stop only when user downloads.
+    function startAnimationLoop() {
+      if (animating) return;
+      animating = true;
+
+      // Start pose cycling
+      poseIndex = 0;
+      if (poseTimer) clearInterval(poseTimer);
+      poseTimer = setInterval(() => {
+        poseIndex = (poseIndex + 1) % poses.length;
+      }, 1200);
+
+      // Start RAF
+      function animate(now) {
+        const w = stageCanvas.clientWidth;
+        const h = stageCanvas.clientHeight;
+        const t = now / 1000;
+
+        // Update mode-based target
+        const modeAngles = (function(){
+          const base = getTargetAnglesForMode(indexToMode(currentTipIndex), twoPeopleMode);
+          const p = poses[poseIndex];
+          // mix base mode with current pose for lively motion
+          const mix = {
+            headTilt: lerp(base.headTilt, p.headTilt, 0.6),
+            torsoTilt: lerp(base.torsoTilt, p.torsoTilt, 0.6),
+            leftArm: lerp(base.leftArm, p.leftArm, 0.6),
+            rightArm: lerp(base.rightArm, p.rightArm, 0.6),
+            leftLeg: lerp(base.leftLeg, p.leftLeg, 0.6),
+            rightLeg: lerp(base.rightLeg, p.rightLeg, 0.6),
+          };
+          return mix;
+        })();
+
+        // Apply a gentle secondary breathing to keep life
+        const breathe = 0.05 * Math.sin(now * 0.003);
+        targetAngles = {
+          headTilt: modeAngles.headTilt + breathe,
+          torsoTilt: modeAngles.torsoTilt,
+          leftArm: modeAngles.leftArm,
+          rightArm: modeAngles.rightArm,
+          leftLeg: modeAngles.leftLeg,
+          rightLeg: modeAngles.rightLeg
+        };
+
+        // Smooth interpolation
+        currentAngles.headTilt = lerp(currentAngles.headTilt, targetAngles.headTilt, 0.15);
+        currentAngles.torsoTilt = lerp(currentAngles.torsoTilt, targetAngles.torsoTilt, 0.15);
+        currentAngles.leftArm = lerp(currentAngles.leftArm, targetAngles.leftArm, 0.15);
+        currentAngles.rightArm = lerp(currentAngles.rightArm, targetAngles.rightArm, 0.15);
+        currentAngles.leftLeg = lerp(currentAngles.leftLeg, targetAngles.leftLeg, 0.15);
+        currentAngles.rightLeg = lerp(currentAngles.rightLeg, targetAngles.rightLeg, 0.15);
+
+        // Two-people mode from current tip
+        twoPeopleMode = tipSuggestsTwoPeople(tips[currentTipIndex] || '');
+
+        // Draw
+        drawScene(ctx, w, h, t, twoPeopleMode, currentAngles);
+
+        requestAnimationFrame(animate);
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // Map tip index to a simple motion mode (0..5)
+    function indexToMode(index) {
+      const map = [0,1,2,3,4,5];
+      return map[index % map.length];
+    }
+
+    // Return target angles for a given mode
+    function getTargetAnglesForMode(mode, twoPeople) {
+      const neutral = {
+        headTilt: 0,
+        torsoTilt: 0,
+        leftArm: 0,
+        rightArm: 0,
+        leftLeg: 0,
+        rightLeg: 0
+      };
+      switch (mode) {
+        case 0: // idle / breathing
+          return { ...neutral, leftArm: 0.15, rightArm: -0.15, leftLeg: -0.05, rightLeg: 0.05, headTilt: 0.05, torsoTilt: 0.0 };
+        case 1: // walk small cycle
+          return { headTilt: 0.08, torsoTilt: 0.04, leftArm: -0.6, rightArm: 0.6, leftLeg: 0.6, rightLeg: -0.6 };
+        case 2: // turning
+          return { headTilt: 0.3, torsoTilt: 0.25, leftArm: -0.2, rightArm: 0.8, leftLeg: -0.2, rightLeg: 0.2 };
+        case 3: // raising arms
+          return { headTilt: 0.0, torsoTilt: 0.0, leftArm: -1.2, rightArm: 0.6, leftLeg: 0.0, rightLeg: 0.0 };
+        case 4: // pointing
+          return { headTilt: 0.0, torsoTilt: 0.0, leftArm: 0.0, rightArm: 1.1, leftLeg: 0.0, rightLeg: 0.0 };
+        case 5: // crouch
+          return { headTilt: -0.05, torsoTilt: 0.15, leftArm: 0.2, rightArm: -0.2, leftLeg: 1.0, rightLeg: 1.0 };
+        default:
+          return neutral;
+      }
+    }
+
+    // Initialize: start with empty stage, then user clicks to generate
+    function getStageSize() {
+      return { w: stageCanvas.clientWidth, h: stageCanvas.clientHeight };
+    }
+
+    // Kick off the initial rendering loop for the preview stage (without audio recording)
+    function idleRender() {
+      const w = stageCanvas.clientWidth;
+      const h = stageCanvas.clientHeight;
+      ctx.clearRect(0,0,w,h);
+      // Optional watermark or background can be drawn here
+      requestAnimationFrame(idleRender);
+    }
+    idleRender();
+
+    // Public start sequence after tips ready
+    function startPreviewSequence() {
+      // start animation loop
+      startAnimationLoop();
+    }
+
+    downloadBtn.addEventListener('click', () => {
+      // If not currently recording, start the recording pipeline, including the canvas and narration
+      if (!isRecording) {
+        // Initialize watermark status for download (video should be sans watermark if unlocked)
+        startRecordingPipeline();
+      }
+    });
+
+    // Unlock logic updated for per-video unique code
+    unlockBtn.addEventListener('click', () => {
+      const entered = (unlockInput.value || '').trim().toUpperCase();
+      if (!currentVideoCode) {
+        alert('Générez d’abord les conseils pour calculer le code.');
+        return;
+      }
+      if (entered === currentVideoCode) {
+        unlockOK = true;
+        downloadBtn.disabled = false;
+        unlockStatus.textContent = 'Code accepté. Watermark retirée (prévisualisation).';
+        // Watermark will be removed in the recorded video
+      } else {
+        unlockStatus.textContent = 'Code invalide';
+      }
+    });
+
+    generateBtn.addEventListener('click', async () => {
+      const subject = (subjectInput.value || '').trim();
+      if (!subject) { alert('Veuillez entrer un sujet pour générer des conseils.'); return; }
+
+      // Compute per-video unlock code (unique to this subject)
+      currentVideoCode = computeCodeForSubject(subject);
+
+      // If admin mode, show code in a discreet banner
+      if (isAdminMode && adminBanner) {
+        adminBanner.textContent = 'Code pour cette vidéo : ' + currentVideoCode;
+        adminBanner.style.display = 'block';
+      }
+
+      // Reset tips and UI
+      tips = [];
+      currentTipIndex = 0;
+      // We'll rely on canvas for tip rendering; clear any old content visually by redrawing
+      downloadBtn.disabled = true;
+      unlockInput.value = '';
+      unlockStatus.textContent = '';
+      recordStatusEl.style.display = 'none';
+      recordStatusEl.textContent = '';
+
+      // Fetch tips and start rendering/recording
+      await fetchTips(subject);
+      startPreviewSequence();
+    });
+
+    // Initialize Tip rendering constants for compatibility
+    function startTipRevealWrapper() {
+      if (tips.length > 0) startTipReveal(0);
+    }
+
+    // Kick off the initial rendering loop to ensure stage shows something
+    function ensureRenderingActive() {}
+
+    // Rendering pipeline: build media stream from canvas + audio, then record
+    function startRecordingPipeline() {
+      // Disable download button until it's done
+      downloadBtn.disabled = true;
+      isRecording = true;
+      recordedChunks = [];
+
+      // Prepare video stream from canvas
+      const videoStream = stageCanvas.captureStream(30);
+      videoStreamTrack = videoStream.getVideoTracks()[0];
+
+      // Prepare simple audio track using Web Audio API (as a stand-in for narrated speech)
+      // Simple synthetic "voix" via oscillator + envelope
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const dest = audioCtx.createMediaStreamDestination();
+
+      narrationOsc = audioCtx.createOscillator();
+      narrationGain = audioCtx.createGain();
+      narrationOsc.type = 'sine';
+      narrationOsc.frequency.value = 180; // base voice-like tone
+      narrationGain.gain.value = 0.0;
+      narrationOsc.connect(narrationGain);
+      narrationGain.connect(dest);
+      narrationOsc.start();
+
+      // Gentle envelope to simulate speaking
+      const now = audioCtx.currentTime;
+      narrationGain.gain.cancelScheduledValues(now);
+      narrationGain.gain.setValueAtTime(0.0, now);
+      narrationGain.gain.linearRampToValueAtTime(0.28, now + 0.2);
+      narrationGain.gain.linearRampToValueAtTime(0.0, now + 2.0);
+
+      // Create a combined stream: video + audio
+      combinedStream = new MediaStream([videoStreamTrack]);
+      // Attach audio tracks from destination if available
+      const audioTracks = dest.stream.getAudioTracks();
+      if (audioTracks.length > 0) {
+        audioTracks.forEach(t => combinedStream.addTrack(t));
+      }
+
+      // Fallback: if no audio track, still allow video recording
+      // Prepare MediaRecorder
+      let mimeType = 'video/webm; codecs=vp9';
+      if (!window.MediaRecorder || !MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm';
+      }
+      if (!window.MediaRecorder || !MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = '';
+      }
+
+      try {
+        mediaRecorder = mimeType ? new MediaRecorder(combinedStream, { mimeType }) : new MediaRecorder(combinedStream);
+      } catch (e) {
+        console.error('Erreur lors de la création du MediaRecorder:', e);
+        // Fallback: just use the video stream without audio
+        mediaRecorder = new MediaRecorder(videoStream);
+      }
+
+      recordedChunks = [];
+      mediaRecorder.ondataavailable = function(e) {
+        if (e.data && e.data.size > 0) {
+          recordedChunks.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = onRecordingStop;
+
+      // Start recording
+      try {
+        mediaRecorder.start(100); // collect in chunks every 100ms
+        recordingStartedAt = performance.now();
+      } catch (e) {
+        console.error('Erreur au démarrage de MediaRecorder:', e);
+      }
+
+      // Start narration via Web Speech API (actual speech audible to user)
+      // Concatenate tips into one narration
+      const narrationText = (tips && tips.length > 0) ? tips.join(' ') : 'Génération des conseils.';
+      if ('speechSynthesis' in window) {
+        // Cancel any previous utterances
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(narrationText);
+        utter.lang = 'fr-FR';
+        utter.onend = () => {
+          // End callback
+        };
+        window.speechSynthesis.speak(utter);
+      }
+
+      // After starting, provide user-visible progress
+      recordStatusEl.style.display = 'block';
+      recordStatusEl.textContent = 'Enregistrement en cours…';
+      // Stop recording automatically after narration ends (plus a small buffer)
+      if ('speechSynthesis' in window) {
+        const checkIdle = setInterval(() => {
+          if (!window.speechSynthesis.speaking && recordedChunks.length > 0) {
+            clearInterval(checkIdle);
+            setTimeout(() => stopRecording(), 500);
+          }
+        }, 200);
+        window.addEventListener('beforeunload', () => clearInterval(checkIdle));
+      }
+
+      // In case speechSynthesis is not available, stop after a fixed duration
+      if (!('speechSynthesis' in window)) {
+        setTimeout(() => stopRecording(), 15000);
+      }
+    }
+
+    function stopRecording() {
+      if (!isRecording) return;
+      isRecording = false;
+
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        try { mediaRecorder.stop(); } catch (e) { /* ignore */ }
+      }
+
+      // Stop the synthetic audio
+      try {
+        if (narrationOsc) {
+          narrationOsc.disconnect();
+          narrationOsc = null;
+        }
+        if (narrationGain) {
+          narrationGain.disconnect();
+          narrationGain = null;
+        }
+        if (audioCtx && audioCtx.state !== 'closed') {
+          audioCtx.close().catch(()=>{});
+        }
+      } catch(e) {}
+
+      // Update UI
+      recordStatusEl.textContent = 'Préparation du téléchargement…';
+    }
+
+    function onRecordingStop() {
+      // Build blob from chunks
+      const blob = recordedChunks.length ? new Blob(recordedChunks, { type: recordedChunks[0].type || 'video/webm' }) : null;
+      if (!blob) {
+        recordStatusEl.textContent = 'Échec de l’enregistrement.';
+        return;
+      }
+
+      // Create a download link and trigger it
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'stickadvice-video.webm';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+
+      // Clear status
+      recordStatusEl.style.display = 'none';
+      recordStatusEl.textContent = '';
+      downloadBtn.disabled = false;
+    }
+
+    // Stage drawing: main render function
+    function drawScene(ctx, w, h, t, twoPeople, angles) {
+      // background gradient
+      const g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, '#0a0a0f');
+      g.addColorStop(1, '#11131b');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+
+      // Subtle vignette
+      ctx.fillStyle = 'rgba(0,0,0,0.15)';
+      ctx.fillRect(0, 0, w, h);
+
+      // Grain overlay
+      drawGrainTexture();
+
+      // Character drawing
+      const baseScale = Math.min(w, h) / 420;
+      const f1 = { cx: w * 0.35, cy: h * 0.58, scale: baseScale };
+      const f2 = { cx: w * 0.65, cy: h * 0.58, scale: baseScale * 0.95 };
+
+      // Interpolate angles to create smooth transitions
+      currentAngles.headTilt = lerp(currentAngles.headTilt, angles.headTilt, 0.05);
+      currentAngles.torsoTilt = lerp(currentAngles.torsoTilt, angles.torsoTilt, 0.05);
+      currentAngles.leftArm = lerp(currentAngles.leftArm, angles.leftArm, 0.05);
+      currentAngles.rightArm = lerp(currentAngles.rightArm, angles.rightArm, 0.05);
+      currentAngles.leftLeg = lerp(currentAngles.leftLeg, angles.leftLeg, 0.05);
+      currentAngles.rightLeg = lerp(currentAngles.rightLeg, angles.rightLeg, 0.05);
+
+      // Two-people mode from current tip
+      if (twoPeople) {
+        drawStickFigure(ctx, f1.cx, f1.cy, f1.scale, false, currentAngles, false);
+        drawStickFigure(ctx, f2.cx, f2.cy, f2.scale, true, currentAngles, true);
+      } else {
+        drawStickFigure(ctx, f1.cx, f1.cy, f1.scale, false, currentAngles, false);
+      }
+
+      // Draw canvas-based tip text
+      drawTipOnCanvas(ctx, w, h);
+    }
+
+    // Draw a simple stick figure at (cx, cy)
+    function drawStickFigure(ctx, cx, cy, scale, female, angles, mirror) {
+      const L = 40 * scale;
+      const headR = 12 * scale;
+      const torsoTopY = cy - 8 * scale;
+
+      const leftArmAngle = (angles.leftArm + (mirror ? 0.3 : -0.3));
+      const rightArmAngle = (angles.rightArm + (mirror ? -0.3 : 0.3));
+      const leftLegAngle = (Math.PI / 2 + angles.leftLeg);
+      const rightLegAngle = (Math.PI / 2 + angles.rightLeg);
+
+      // Head
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#fff';
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(cx - (mirror ? 2 : 0), cy - 40 * scale - headR, headR, 0, Math.PI*2);
+      ctx.stroke();
+
+      // Neck / torso
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - headR * 0.8 - 4 * scale);
+      ctx.lineTo(cx, torsoTopY);
+      ctx.stroke();
+
+      // Torso line
+      ctx.beginPath();
+      ctx.moveTo(cx, torsoTopY);
+      const hipY = cy + 28 * scale;
+      ctx.lineTo(cx, hipY);
+      ctx.stroke();
+
+      // Shoulders
+      const shoulderLeft = { x: cx - 18 * scale, y: cy - 4 * scale };
+      const shoulderRight = { x: cx + 18 * scale, y: cy - 4 * scale };
+
+      // Arms
+      const armLen = 32 * scale;
+      const leftEnd = { x: shoulderLeft.x + Math.cos(leftArmAngle) * armLen, y: shoulderLeft.y + Math.sin(leftArmAngle) * armLen };
+      const rightEnd = { x: shoulderRight.x + Math.cos(rightArmAngle) * armLen, y: shoulderRight.y + Math.sin(rightArmAngle) * armLen };
+
+      ctx.beginPath();
+      ctx.moveTo(shoulderLeft.x, shoulderLeft.y);
+      ctx.lineTo(leftEnd.x, leftEnd.y);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(shoulderRight.x, shoulderRight.y);
+      ctx.lineTo(rightEnd.x, rightEnd.y);
+      ctx.stroke();
+
+      // Hips
+      const hipLeft = { x: cx - 14 * scale, y: hipY };
+      const hipRight = { x: cx + 14 * scale, y: hipY };
+
+      // Legs
+      const leftFoot = { x: hipLeft.x + Math.cos(leftLegAngle) * L, y: hipLeft.y + Math.sin(leftLegAngle) * L };
+      const rightFoot = { x: hipRight.x + Math.cos(rightLegAngle) * L, y: hipRight.y + Math.sin(rightLegAngle) * L };
+
+      ctx.beginPath();
+      ctx.moveTo(hipLeft.x, hipLeft.y);
+      ctx.lineTo(leftFoot.x, leftFoot.y);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(hipRight.x, hipRight.y);
+      ctx.lineTo(rightFoot.x, rightFoot.y);
+      ctx.stroke();
+
+      // Female skirt embellishment
+      if (female) {
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(cx - 16 * scale, hipY);
+        ctx.lineTo(cx + 16 * scale, hipY);
+        ctx.lineTo(cx, hipY + 52 * scale);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    // Simple watermark drawing (kept for completeness)
+    function drawWatermark(ctx, w, h){
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 38px Inter, sans-serif';
+      const text = 'StickAdvice';
+      const stepX = 420;
+      const stepY = 180;
+      for (let y = -h; y < h * 2; y += stepY) {
+        ctx.save();
+        ctx.translate(-w * 0.2, y);
+        ctx.rotate(-0.25);
+        ctx.fillText(text, 0, 0);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    // Initialize: start with empty stage, then user clicks to generate
+    function getStageSize() {
+      return { w: stageCanvas.clientWidth, h: stageCanvas.clientHeight };
+    }
+
+    // Kick off the initial rendering loop for the preview stage (without tips yet)
+    function ensureRenderingActive() {}
+
+    // Build the initial stage and start animation when tips are loaded
+    // Initialize tip rendering constants for compatibility
+    function startTipRevealWrapper() {
+      if (tips.length > 0) startTipReveal(0);
+    }
+
+  // End of internal helpers; actual orchestration is below
+
+    // Initialize
+    function init() {
+      // Hide HTML live tip overlay to ensure canvas contains the text
+      try { liveTipEl.style.display = 'none'; } catch(e){}
+    }
+    init();
+
+  })();
+  </script>
+</body>
+</html>
