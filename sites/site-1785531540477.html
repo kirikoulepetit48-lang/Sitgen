@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PhotoStyle IA — Raph Man</title>
+  <style>
+    :root{
+      --purple:#7C3AED;
+      --purple-dark:#5B21B6;
+      --orange:#F97316;
+      --bg:#0F0E14;
+      --card:#1B1922;
+      --ink:#F5F4FA;
+      --ink-soft:#9C98AA;
+      --tint:#26222F;
+      --radius:14px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial; -webkit-tap-highlight-color:transparent;}
+    .wrap{max-width:520px;margin:0 auto;padding:22px 20px 60px}
+    h1{font-size:22px;font-weight:800;text-align:center;margin:0 0 6px}
+    .sub{text-align:center;color:var(--ink-soft);font-size:13px;margin:0 0 22px}
+    .upload-box{
+      border:2px dashed #3A3548;border-radius:16px;
+      padding:28px 16px;text-align:center;margin-bottom:16px;
+      background:var(--card);cursor:pointer;position:relative;overflow:hidden;
+      transition:transform .2s ease;
+    }
+    .upload-box:hover{transform:translateY(-1px)}
+    .upload-box img{max-width:100%;max-height:260px;border-radius:12px;display:block;margin:0 auto}
+    .upload-box .hint{color:var(--ink-soft);font-size:13px;margin-top:6px}
+    input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+    .styles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 12px}
+    .style-btn{
+      background:var(--tint);border:2px solid transparent;border-radius:12px;
+      padding:12px 6px;text-align:center;font-size:12px;font-weight:700;color:var(--ink);
+      cursor:pointer;transition:all .2s ease;
+    }
+    .style-btn.active{border-color:var(--orange);background:linear-gradient(135deg,var(--purple),var(--orange));}
+    .go-btn{
+      width:100%;padding:14px;border:none;border-radius:14px;
+      background:linear-gradient(135deg,var(--purple),var(--orange));
+      color:#fff;font-weight:800;font-size:15px;cursor:pointer;
+    }
+    .go-btn:disabled{opacity:.4;cursor:not-allowed}
+    .result{margin-top:20px;text-align:center}
+    .result img{max-width:100%;border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.25)}
+    .dl{
+      display:inline-block;margin-top:12px;padding:12px 20px;border-radius:12px;
+      background:var(--card);color:var(--orange);font-weight:700;text-decoration:none;font-size:14px;
+    }
+    .status{text-align:center;color:var(--ink-soft);font-size:13px;margin-top:6px;min-height:18px}
+    @media (max-width: 720px){
+      .styles{grid-template-columns:repeat(2,1fr)}
+      .wrap{padding:18px 14px 40px}
+    }
+    @media (max-width: 420px){
+      .styles{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🎨 PhotoStyle IA</h1>
+    <p class="sub">Transforme ta photo en cartoon, anime, pixar…</p>
+
+    <label class="upload-box" id="uploadBox" aria-label="Choisir une photo">
+      <div id="uploadContent" style="display:flex;flex-direction:column;gap:6px;align-items:center">
+        <div style="font-size:34px;">📷</div>
+        <div class="hint">Touche ici pour choisir une photo</div>
+      </div>
+      <input type="file" accept="image/*" id="fileInput" />
+    </label>
+
+    <div class="styles" id="styles" aria-label="Styles disponibles">
+      <button class="style-btn active" data-style="Pixar">Pixar</button>
+      <button class="style-btn" data-style="Anime">Anime</button>
+      <button class="style-btn" data-style="Comic">Comic</button>
+      <button class="style-btn" data-style="Aquarelle">Aquarelle</button>
+      <button class="style-btn" data-style="Cyberpunk">Cyberpunk</button>
+      <button class="style-btn" data-style="Claymation">Claymation</button>
+    </div>
+
+    <button class="go-btn" id="goBtn" disabled>Choisis d'abord une photo</button>
+    <div class="status" id="status" aria-live="polite"></div>
+
+    <div class="result" id="result" style="display:none" aria-label="Résultat">
+      <img id="resultImg" alt="Photo stylisée"/>
+      <br/>
+      <a class="dl" id="dlBtn" download="photostyle.png" href="#">⬇️ Télécharger</a>
+    </div>
+  </div>
+
+  <script>
+    // Variables de travail
+    let uploadedDataUrl = null;
+    let selectedStyle = document.querySelector('.style-btn.active').dataset.style;
+
+    const fileInput = document.getElementById('fileInput');
+    const uploadContent = document.getElementById('uploadContent');
+    const goBtn = document.getElementById('goBtn');
+    const status = document.getElementById('status');
+    const result = document.getElementById('result');
+    const resultImg = document.getElementById('resultImg');
+    const dlBtn = document.getElementById('dlBtn');
+    const styleButtons = document.querySelectorAll('.style-btn');
+
+    // Styles configurables simples
+    const styleConfigs = {
+      "Pixar":   { levels: 8 },
+      "Anime":   { levels: 6 },
+      "Comic":   { levels: 6, edgeThreshold: 22 },
+      "Aquarelle":{ levels: 12, desaturate: true },
+      "Cyberpunk":{ levels: 6 },
+      "Claymation":{ levels: 8, sepia: true }
+    };
+
+    // Mise à jour du style sélectionné
+    styleButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        styleButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedStyle = btn.dataset.style;
+      });
+    });
+
+    // Chargement de l'image
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        uploadedDataUrl = ev.target.result;
+        uploadContent.innerHTML = '<img src="' + uploadedDataUrl + '" alt="Photo téléchargée" />';
+        goBtn.disabled = false;
+        status.textContent = '';
+        dlBtn.href = '#';
+        result.style.display = 'none';
+        resultImg.src = '';
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Redimensionner et cartooniser
+    function cartoonizeImage(dataUrl, styleName) {
+      return new Promise((resolve, reject) => {
+        const cfg = styleConfigs[styleName] || { levels: 6 };
+        const img = new Image();
+        img.onload = () => {
+          // Limiter la taille pour performance
+          const maxW = 720;
+          let w = img.width, h = img.height;
+          if (w > maxW) { const ratio = maxW / w; w = maxW; h = Math.round(h * ratio); }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(img, 0, 0, w, h);
+
+          // Récupérer données
+          let imageData = ctx.getImageData(0, 0, w, h);
+          let data = imageData.data;
+
+          // Quantisation des couleurs
+          const levels = Math.max(2, Math.min(64, cfg.levels || 6));
+          const step = 255 / (levels - 1);
+
+          // Pass 1: quantisation + quelques ajustements selon style
+          for (let i = 0; i < data.length; i += 4) {
+            let r = data[i], g = data[i+1], b = data[i+2];
+
+            // Quantisation
+            r = Math.round(r / step) * step;
+            g = Math.round(g / step) * step;
+            b = Math.round(b / step) * step;
+
+            // Ajustements style
+            switch (styleName) {
+              case 'Pixar':
+                r = Math.min(255, r * 1.04);
+                g = Math.min(255, g * 1.04);
+                b = Math.max(0, b * 0.98);
+                break;
+              case 'Anime':
+                r *= 0.98; g *= 1.0; b *= 1.15;
+                break;
+              case 'Aquarelle':
+                // desaturation légère
+                {
+                  const lum = 0.299*r + 0.587*g + 0.114*b;
+                  r = lum * 0.9 + r * 0.1;
+                  g = lum * 0.9 + g * 0.1;
+                  b = lum * 0.9 + b * 0.1;
+                }
+                break;
+              case 'Cyberpunk':
+                r = Math.min(255, r * 1.15);
+                g = Math.min(255, g * 1.0);
+                b = Math.min(255, b * 1.25);
+                break;
+              case 'Claymation':
+                // sepia légère
+                {
+                  const tr = 0.393*r + 0.769*g + 0.189*b;
+                  const tg = 0.349*r + 0.686*g + 0.168*b;
+                  const tb = 0.272*r + 0.534*g + 0.131*b;
+                  r = Math.min(255, tr);
+                  g = Math.min(255, tg);
+                  b = Math.min(255, tb);
+                }
+                break;
+              // Comic est traité en pass d'edges ci-dessous
+            }
+
+            // Clamp
+            data[i] = Math.max(0, Math.min(255, r));
+            data[i+1] = Math.max(0, Math.min(255, g));
+            data[i+2] = Math.max(0, Math.min(255, b));
+            // alpha unchanged
+          }
+
+          // Pass d'Edges pour un rendu "dessin animé"/"line art" quand souhaité
+          if (styleName === 'Comic' || cfg.edgeThreshold) {
+            // Construction des luminances
+            const lum = new Float32Array((w * h));
+            for (let py = 0, idx = 0; py < h; py++) {
+              for (let px = 0; px < w; px++, idx += 4) {
+                const r = data[idx], g = data[idx+1], b = data[idx+2];
+                lum[py * w + px] = 0.299*r + 0.587*g + 0.114*b;
+              }
+            }
+
+            // Détection des contours et noirci les contours
+            const edgeThr = 28; // ajustable
+            for (let y = 0; y < h; y++) {
+              for (let x = 0; x < w; x++) {
+                const k = y * w + x;
+                const idx = k * 4;
+                // droite
+                if (x < w - 1) {
+                  const lumR = lum[k];
+                  const lumRgt = lum[k + 1];
+                  if (Math.abs(lumR - lumRgt) > edgeThr) {
+                    data[idx] = data[idx+1] = data[idx+2] = 0;
+                    continue;
+                  }
+                }
+                // bas
+                if (y < h - 1) {
+                  const lumD = lum[k];
+                  const lumDown = lum[k + w];
+                  if (Math.abs(lumD - lumDown) > edgeThr) {
+                    data[idx] = data[idx+1] = data[idx+2] = 0;
+                  }
+                }
+              }
+            }
+          }
+
+          // Mettre à jour le canvas
+          ctx.putImageData(imageData, 0, 0);
+
+          // Résultat final
+          const finalURL = canvas.toDataURL('image/png');
+          resolve(finalURL);
+        };
+        img.onerror = (err) => reject(err);
+        img.src = dataUrl;
+      });
+    }
+
+    // Gestion du bouton "Transformer"
+    goBtn.addEventListener('click', async () => {
+      if (!uploadedDataUrl) return;
+      goBtn.disabled = true;
+      result.style.display = 'none';
+      status.textContent = '⏳ Préparation de la photo...';
+
+      try {
+        // Génération simulée
+        const styledUrl = await cartoonizeImage(uploadedDataUrl, selectedStyle);
+        resultImg.src = styledUrl;
+        dlBtn.href = styledUrl;
+        result.style.display = 'block';
+        status.textContent = '✅ Terminé !';
+        // Prêt pour réessayer
+        goBtn.disabled = false;
+        goBtn.textContent = '🔄 Réessayer';
+      } catch (err) {
+        status.textContent = '⚠️ Erreur : ' + (err && err.message ? err.message : 'Échec de la transformation');
+        goBtn.disabled = false;
+        goBtn.textContent = '✨ Transformer ma photo';
+      }
+    });
+  </script>
+</body>
+</html>
