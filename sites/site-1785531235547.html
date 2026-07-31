@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PhotoStyle IA — Raph Man</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --purple:#7C3AED; --purple-dark:#5B21B6; --orange:#F97316;
+      --bg:#0F0E14; --card:#1B1922; --ink:#F5F4FA; --ink-soft:#9C98AA; --tint:#26222F;
+    }
+    *{box-sizing:border-box;}
+    html,body{height:100%;}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;-webkit-tap-highlight-color:transparent;}
+    .wrap{max-width:600px;margin:0 auto;padding:28px 20px 60px;}
+    h1{font-size:22px;font-weight:800;text-align:center;margin:0 0 6px;letter-spacing:.2px;}
+    .sub{text-align:center;color:var(--ink-soft);font-size:14px;margin:0 0 22px;}
+
+    .upload-box{
+      border:2px dashed #3A3548;border-radius:16px;
+      padding:26px 16px;text-align:center;margin-bottom:16px;
+      background:var(--card);cursor:pointer;position:relative;overflow:hidden;
+    }
+    .upload-box img{max-width:100%;max-height:340px;border-radius:12px;display:block;margin:0 auto;}
+    .upload-box .hint{color:var(--ink-soft);font-size:13px;margin-top:6px;}
+    input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+
+    .styles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 14px;}
+    .style-btn{
+      background:var(--tint);border:2px solid transparent;border-radius:12px;
+      padding:12px 6px;text-align:center;font-size:12px;font-weight:700;color:var(--ink);
+      transition: transform .2s ease;
+    }
+    .style-btn:hover{transform: translateY(-1px);}
+    .style-btn.active{border-color:var(--orange);background:linear-gradient(135deg,var(--purple),var(--orange));}
+
+    .go-btn{
+      width:100%;padding:14px;border:none;border-radius:14px;
+      background:linear-gradient(135deg,var(--purple),var(--orange));
+      color:#fff;font-weight:900;font-size:15px;letter-spacing:.3px;cursor:pointer;
+    }
+    .go-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+    .status{text-align:center;color:var(--ink-soft);font-size:13px;margin-top:8px;min-height:18px;}
+
+    .result{margin-top:22px;text-align:center;}
+    .result img{max-width:100%;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.25);}
+    .dl{
+      display:inline-block;margin-top:12px;padding:12px 20px;border-radius:12px;
+      background:var(--card);color:var(--orange);font-weight:700;text-decoration:none;font-size:14px;
+    }
+    @media (max-width: 700px){
+      .wrap{padding:20px 14px 60px;}
+      .styles{grid-template-columns:repeat(2,1fr);}
+    }
+    @media (max-width: 420px){
+      .styles{grid-template-columns:1fr 1fr;}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎨 PhotoStyle IA</h1>
+  <p class="sub">Transforme ta photo en cartoon, anime, pixar…</p>
+
+  <label class="upload-box" id="uploadBox">
+    <div id="uploadContent" aria-label="zone de téléchargement">
+      <div style="font-size:32px;margin-bottom:6px;">📷</div>
+      <div class="hint">Touche ici pour choisir une photo</div>
+    </div>
+    <input type="file" accept="image/*" id="fileInput">
+  </label>
+
+  <div class="styles" id="styles" aria-label="sélection de styles">
+    <button class="style-btn active" data-style="pixar">Pixar</button>
+    <button class="style-btn" data-style="anime">Anime</button>
+    <button class="style-btn" data-style="comic">Comic</button>
+    <button class="style-btn" data-style="aquarelle">Aquarelle</button>
+    <button class="style-btn" data-style="cyberpunk">Cyberpunk</button>
+    <button class="style-btn" data-style="claymation">Claymation</button>
+  </div>
+
+  <button class="go-btn" id="goBtn" disabled>Choisis d'abord une photo</button>
+  <div class="status" id="status" aria-live="polite"></div>
+
+  <div class="result" id="result" style="display:none">
+    <img id="resultImg" alt="Version stylisée de l'image"/>
+    <br>
+    <a class="dl" id="dlBtn" download="photostyle.png">⬇️ Télécharger</a>
+  </div>
+</div>
+
+<script>
+let uploadedDataUrl = null;
+let selectedStyleKey = document.querySelector('.style-btn.active').dataset.style;
+
+const fileInput = document.getElementById('fileInput');
+const uploadContent = document.getElementById('uploadContent');
+const goBtn = document.getElementById('goBtn');
+const status = document.getElementById('status');
+const result = document.getElementById('result');
+const resultImg = document.getElementById('resultImg');
+const dlBtn = document.getElementById('dlBtn');
+const stylesBox = document.getElementById('styles');
+
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    uploadedDataUrl = ev.target.result;
+    // Preview inside upload box
+    uploadContent.innerHTML = '<img src="' + uploadedDataUrl + '" alt="Preview image" style="width:100%;border-radius:10px;"/>';
+    goBtn.disabled = false;
+    goBtn.textContent = '✨ Transformer ma photo';
+  };
+  reader.readAsDataURL(file);
+});
+
+// Style selection
+document.querySelectorAll('.style-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedStyleKey = btn.dataset.style;
+  });
+});
+
+// Simple cartoonization (offline, no external API)
+function cartoonizeImage(image, styleKey, maxSize = 768) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  // Resize to keep it light
+  let w = image.naturalWidth;
+  let h = image.naturalHeight;
+  if (w > h && w > maxSize) { h = h * (maxSize / w); w = maxSize; }
+  else if (h > maxSize) { w = w * (maxSize / h); h = maxSize; }
+  canvas.width = Math.round(w);
+  canvas.height = Math.round(h);
+
+  ctx.drawImage(image, 0, 0, w, h);
+
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const data = imageData.data;
+
+  // Style parameters
+  const styleParams = {
+    pixar:      { levels: 6, edgeThresh: 40, boost: 1.08 },
+    anime:      { levels: 8, edgeThresh: 30, boost: 1.15 },
+    comic:      { levels: 6, edgeThresh: 45, boost: 1.0 },
+    aquarelle:  { levels: 9, edgeThresh: 50, boost: 0.95 },
+    cyberpunk:  { levels: 8, edgeThresh: 28, boost: 1.25 },
+    claymation:  { levels: 4, edgeThresh: 50, boost: 0.92 }
+  };
+
+  const p = styleParams[styleKey] || styleParams.pixar;
+  const levels = p.levels;
+  const edgeThresh = p.edgeThresh;
+  const boost = p.boost;
+
+  const step = 255 / (levels - 1);
+
+  // Create a working copy
+  const out = new Uint8ClampedArray(data);
+
+  // Quantize colors
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i], g = data[i+1], b = data[i+2];
+
+    // Quantize each channel
+    const qr = Math.round(r / step) * step;
+    const qg = Math.round(g / step) * step;
+    const qb = Math.round(b / step) * step;
+
+    out[i]   = qr;
+    out[i+1] = qg;
+    out[i+2] = qb;
+    // Alpha remains
+  }
+
+  // Edge detection and final coloring
+  // Simple grayscale helper
+  function lum(r,g,b){ return 0.299*r + 0.587*g + 0.114*b; }
+
+  // Apply edges and color boost
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 4;
+      const r = out[idx], g = out[idx+1], b = out[idx+2];
+      const l = lum(r, g, b);
+
+      // Right and bottom neighbors
+      let lr = l, lb = l;
+      if (x < w - 1) {
+        const idxR = idx + 4;
+        const rr = out[idxR], gr = out[idxR+1], br = out[idxR+2];
+        lr = lum(rr, gr, br);
+      }
+      if (y < h - 1) {
+        const idxB = idx + w * 4;
+        const rb = out[idxB], gb = out[idxB+1], bb = out[idxB+2];
+        lb = lum(rb, gb, bb);
+      }
+
+      const edge = Math.abs(l - lr) + Math.abs(l - lb);
+      if (edge > edgeThresh) {
+        // Draw black edge
+        out[idx] = out[idx+1] = out[idx+2] = 0;
+      } else {
+        // Subtle color boost
+        let nr = r * boost;
+        let ng = g * boost;
+        let nb = b * boost;
+        // Clamp
+        out[idx]   = nr > 255 ? 255 : nr;
+        out[idx+1] = ng > 255 ? 255 : ng;
+        out[idx+2] = nb > 255 ? 255 : nb;
+      }
+      // Keep alpha
+      // out[idx+3] remains data[idx+3]
+    }
+  }
+
+  // Put back to image data
+  const resultImgData = new ImageData(out, w, h);
+  ctx.putImageData(resultImgData, 0, 0);
+
+  // Return data URL
+  return canvas.toDataURL('image/jpeg', 0.92);
+}
+
+// Handler: run transformation
+goBtn.addEventListener('click', async () => {
+  if(!uploadedDataUrl) return;
+  goBtn.disabled = true;
+  result.style.display = 'none';
+  status.textContent = '⏳ Préparation de la photo...';
+
+  try {
+    // Load image
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      // Cartoonize
+      const stylizedDataUrl = cartoonizeImage(img, selectedStyleKey);
+
+      // Show result
+      resultImg.src = stylizedDataUrl;
+      dlBtn.href = stylizedDataUrl;
+      result.style.display = 'block';
+      status.textContent = '✅ Terminé !';
+      // Re-enable for retry
+      goBtn.disabled = false;
+      goBtn.textContent = '🔄 Réessayer';
+      // Re-enable file input to allow new image
+      fileInput.value = '';
+    };
+    img.onerror = () => {
+      throw new Error("Échec du chargement de l'image.");
+    };
+    img.src = uploadedDataUrl;
+  } catch(err) {
+    status.textContent = '⚠️ Erreur : ' + (err && err.message ? err.message : JSON.stringify(err));
+    goBtn.disabled = false;
+    goBtn.textContent = '✨ Transformer ma photo';
+  }
+});
+</script>
+</body>
+</html>
