@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raph Man — Outils IA</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --purple:#7C3AED;
+    --purple-dark:#5B21B6;
+    --orange:#F97316;
+    --bg:#FAFAFA;
+    --card:#FFFFFF;
+    --ink:#1A1A1A;
+    --ink-soft:#6B6B76;
+    --tint:#F3EEFF;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:28px 20px 60px;}
+
+  /* header */
+  .avatar{
+    width:96px;height:96px;border-radius:50%;
+    margin:0 auto 16px;
+    border:5px solid transparent;
+    background:
+      linear-gradient(var(--card),var(--card)) padding-box,
+      linear-gradient(135deg,var(--purple),var(--orange)) border-box;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .avatar svg{width:56px;height:56px;}
+  h1{
+    font-family:'Space Grotesk','Inter',sans-serif;
+    font-size:28px;font-weight:700;text-align:center;margin:0 0 2px;
+    letter-spacing:-0.01em;
+  }
+  .handle{text-align:center;color:var(--ink-soft);font-size:14px;margin:0 0 6px;}
+  .tagline{
+    text-align:center;font-size:15px;color:var(--ink);
+    margin:0 0 26px;line-height:1.5;
+  }
+  .tagline b{color:var(--purple-dark);}
+
+  /* wa button */
+  .wa{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    background:var(--ink);color:#fff;text-decoration:none;
+    font-weight:700;font-size:15px;
+    padding:14px 18px;border-radius:14px;margin:0 auto 28px;
+    width:fit-content;
+  }
+  .wa svg{width:16px;height:16px;fill:var(--orange);}
+
+  /* circuit divider */
+  .circuit{
+    display:flex;align-items:center;gap:6px;margin:0 0 12px;
+  }
+  .circuit .dot{width:6px;height:6px;border-radius:50%;background:var(--purple);flex-shrink:0;}
+  .circuit .line{height:1.5px;flex:1;background:linear-gradient(90deg,var(--purple),var(--orange));opacity:.35;}
+
+  /* category accordion */
+  .cat{margin-bottom:14px;}
+  .cat-head{
+    width:100%;text-align:left;background:var(--card);
+    border:1px solid #ECEAF3;border-radius:14px;
+    padding:15px 16px;display:flex;align-items:center;justify-content:space-between;
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;
+    cursor:pointer;color:var(--ink);
+  }
+  .cat-head .arrow{
+    color:var(--orange);font-size:13px;transition:transform .2s ease;
+  }
+  .cat.open .cat-head .arrow{transform:rotate(90deg);}
+  .cat-body{
+    max-height:0;overflow:hidden;transition:max-height .25s ease;
+  }
+  .cat.open .cat-body{max-height:1200px;}
+  .cat-list{
+    display:flex;flex-direction:column;gap:8px;
+    padding:10px 4px 4px;
+  }
+  .tool{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--tint);border-radius:12px;
+    padding:12px 14px;text-decoration:none;color:var(--ink);
+    font-size:14px;font-weight:500;
+  }
+  .tool span.go{color:var(--purple-dark);font-weight:700;font-size:13px;}
+
+  footer{
+    text-align:center;margin-top:28px;font-size:12px;color:var(--ink-soft);
+  }
+
+  /* responsive tweaks */
+  @media (max-width: 720px){
+    .wrap{padding:22px 16px 60px;}
+    h1{font-size:26px;}
+  }
+  @media (max-width: 420px){
+    .avatar{width:88px;height:88px;border-width:4px;}
+    .avatar svg{width:48px;height:48px;}
+    h1{font-size:24px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="avatar" aria-label="Logo Raph Man">
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Avatar">
+      <circle cx="50" cy="34" r="22" stroke="#1A1A1A" stroke-width="4"/>
+      <circle cx="42" cy="32" r="2.6" fill="#1A1A1A"/>
+      <circle cx="58" cy="32" r="2.6" fill="#1A1A1A"/>
+      <path d="M40 40 Q50 47 60 40" stroke="#1A1A1A" stroke-width="4" stroke-linecap="round" fill="none"/>
+      <path d="M50 56 L50 90 M50 60 L30 78 M50 60 L70 78 M50 90 L38 100 M50 90 L62 100" stroke="#1A1A1A" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <h1>Raph Man</h1>
+  <p class="handle">@raph.man76</p>
+  <p class="tagline">Je crée des <b>outils IA gratuits</b><br>Vidéos, scripts, visuels, citations… tout automatisé</p>
+
+  <a class="wa" href="https://wa.me/243979312394" target="_blank" rel="noopener" aria-label="Contacter sur WhatsApp">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 00-8.5 15.2L2 22l4.9-1.4A10 10 0 1012 2z"/></svg>
+    Me contacter sur WhatsApp
+  </a>
+
+  <!-- CATEGORY 1 -->
+  <div class="cat">
+    <button class="cat-head" aria-expanded="false" onclick="toggle(this)">✍️ Scripts &amp; idées de vidéos <span class="arrow">▶</span></button>
+    <div class="cat-body" aria-label="Liste des outils Scripts & idées de vidéos"><div class="cat-list">
+      <a class="tool" href="https://free-site-friend.lovable.app/s/generateur-d-idees-de-videos-ia-l-utilis" target="_blank" rel="noopener">Générateur d'idées de vidéos IA <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://free-site-friend.lovable.app/s/createur-de-scripts-viraux-l-utilisateur" target="_blank" rel="noopener">Créateur de scripts viraux <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://free-site-friend.lovable.app/s/generateur-de-hooks-le-site-cree-des-phr" target="_blank" rel="noopener">Générateur de hooks <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://ais-dev-65gqj2mgf6qbmdr7mzbjpz-576005871824.europe-west2.run.app/pub/mon-site-pagecraft-mrpbrtj0" target="_blank" rel="noopener">Idée de vidéo <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://creati-magic-studio-77.lovable.app/s/script-studio-ecrit-des-scripts-youtube" target="_blank" rel="noopener">Script Studio (YouTube) <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://creati-magic-studio-77.lovable.app/s/conseil-de-vue" target="_blank" rel="noopener">Conseil de vue <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://creati-magic-studio-77.lovable.app/s/conseil-1" target="_blank" rel="noopener">Conseil 1 <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://ais-dev-65gqj2mgf6qbmdr7mzbjpz-576005871824.europe-west2.run.app/pub/mon-site-pagecraft-mrqosito" target="_blank" rel="noopener">Vidéo conseil <span class="go">Ouvrir</span></a>
+    </div></div>
+  </div>
+
+  <!-- CATEGORY 2 -->
+  <div class="cat">
+    <button class="cat-head" aria-expanded="false" onclick="toggle(this)">🎨 Visuels &amp; design <span class="arrow">▶</span></button>
+    <div class="cat-body" aria-label="Liste des outils Visuels & design"><div class="cat-list">
+      <a class="tool" href="https://creati-magic-studio-77.lovable.app/s/createur-de-miniatures-et-couvertures-le" target="_blank" rel="noopener">Miniatures &amp; couvertures <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://creati-magic-studio-77.lovable.app/s/logoia" target="_blank" rel="noopener">Logo IA <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://creati-magic-studio-77.lovable.app/s/imaginaire" target="_blank" rel="noopener">Imaginaire <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://ais-dev-65gqj2mgf6qbmdr7mzbjpz-576005871824.europe-west2.run.app/pub/mon-site-pagecraft-mrq891zf" target="_blank" rel="noopener">Avatar IA <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://ais-dev-65gqj2mgf6qbmdr7mzbjpz-576005871824.europe-west2.run.app/pub/mon-site-pagecraft-mrn83o5m" target="_blank" rel="noopener">Vision IA <span class="go">Ouvrir</span></a>
+    </div></div>
+  </div>
+
+  <!-- CATEGORY 3 -->
+  <div class="cat">
+    <button class="cat-head" aria-expanded="false" onclick="toggle(this)">🎬 Vidéo &amp; animation <span class="arrow">▶</span></button>
+    <div class="cat-body" aria-label="Liste des outils Vidéo & animation"><div class="cat-list">
+      <a class="tool" href="https://pov-video-generator-uay0.bolt.host" target="_blank" rel="noopener">POV générateur <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://ais-dev-65gqj2mgf6qbmdr7mzbjpz-576005871824.europe-west2.run.app/pub/mon-site-pagecraft-mrxx7j6g" target="_blank" rel="noopener">POV <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://ais-dev-65gqj2mgf6qbmdr7mzbjpz-576005871824.europe-west2.run.app/pub/mon-site-pagecraft-mmrsafh3y" target="_blank" rel="noopener">Vidéo IA animaux <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://ais-dev-65gqj2mgf6qbmdr7mzbjpz-576005871824.europe-west2.run.app/pub/mon-site-pagecraft-mrsawqnn" target="_blank" rel="noopener">Comic <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://ais-dev-65gqj2mgf6qbmdr7mzbjpz-576005871824.europe-west2.run.app/pub/mon-site-pagecraft-mrys2y8u" target="_blank" rel="noopener">Cartoon <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://toonstory-maker.lovable.app/" target="_blank" rel="noopener">Cartoon 2 <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://creati-magic-studio-77.lovable.app/s/transformerse" target="_blank" rel="noopener">Transformers <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://ais-dev-65gqj2mgf6qbmdr7mzbjpz-576005871824.europe-west2.run.app/pub/mon-site-pagecraft-mrxzh4d3" target="_blank" rel="noopener">Devinette villa <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://ais-dev-65gqj2mgf6qbmdr7mzbjpz-576005871824.europe-west2.run.app/pub/mon-site-pagecraft-mrxz1fzx" target="_blank" rel="noopener">Ceouca <span class="go">Ouvrir</span></a>
+    </div></div>
+  </div>
+
+  <!-- CATEGORY 4 -->
+  <div class="cat">
+    <button class="cat-head" aria-expanded="false" onclick="toggle(this)">💬 Citations &amp; texte <span class="arrow">▶</span></button>
+    <div class="cat-body" aria-label="Liste des outils Citations & texte"><div class="cat-list">
+      <a class="tool" href="https://ais-dev-65gqj2mgf6qbmdr7mzbjpz-576005871824.europe-west2.run.app/pub/mon-site-pagecraft-mrq6d582" target="_blank" rel="noopener">Citations vidéo <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://ais-dev-65gqj2mgf6qbmdr7mzbjpz-576005871824.europe-west2.run.app/pub/mon-site-pagecraft-mrq73gym" target="_blank" rel="noopener">Citations <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://ais-dev-65gqj2mgf6qbmdr7mzbjpz-576005871824.europe-west2.run.app/pub/mon-site-pagecraft-mrxw2j9d" target="_blank" rel="noopener">Citations pro <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://prompt-to-pix-27.lovable.app/" target="_blank" rel="noopener">Citations (visuel) <span class="go">Ouvrir</span></a>
+    </div></div>
+  </div>
+
+  <!-- CATEGORY 5 -->
+  <div class="cat">
+    <button class="cat-head" aria-expanded="false" onclick="toggle(this)">💼 Pro &amp; business <span class="arrow">▶</span></button>
+    <div class="cat-body" aria-label="Liste des outils Pro &amp; business"><div class="cat-list">
+      <a class="tool" href="https://creati-magic-studio-77.lovable.app/s/letter-ai-genere-des-lettres-de-motivati" target="_blank" rel="noopener">Lettre de motivation IA <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://creati-magic-studio-77.lovable.app/s/email-ia" target="_blank" rel="noopener">Email IA <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://creati-magic-studio-77.lovable.app/s/coaching-ia" target="_blank" rel="noopener">Coaching IA <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://creati-magic-studio-77.lovable.app/s/pubsite" target="_blank" rel="noopener">Pubsite <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://creati-magic-studio-77.lovable.app/s/calendrier-virtuelle" target="_blank" rel="noopener">Calendrier virtuel <span class="go">Ouvrir</span></a>
+    </div></div>
+  </div>
+
+  <!-- CATEGORY 6 -->
+  <div class="cat">
+    <button class="cat-head" aria-expanded="false" onclick="toggle(this)">🎮 Autres outils <span class="arrow">▶</span></button>
+    <div class="cat-body" aria-label="Liste des autres outils"><div class="cat-list">
+      <a class="tool" href="https://creati-magic-studio-77.lovable.app/s/hashtagsvie" target="_blank" rel="noopener">Hashtags <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://creati-magic-studio-77.lovable.app/s/lyrics-ai-ecrit-des-paroles-de-chansons" target="_blank" rel="noopener">Chanson IA (paroles) <span class="go">Ouvrir</span></a>
+      <a class="tool" href="https://creati-magic-studio-77.lovable.app/s/quizg" target="_blank" rel="noopener">Générateur de quiz <span class="go">Ouvrir</span></a>
+    </div></div>
+  </div>
+
+  <footer>Raph Man · Outils IA gratuits</footer>
+</div>
+
+<script>
+function toggle(btn){
+  var cat = btn.parentElement;
+  var wasOpen = cat.classList.contains('open');
+  document.querySelectorAll('.cat.open').forEach(function(c){
+    c.classList.remove('open');
+    // update aria-expanded on their headers
+    var h = c.querySelector('.cat-head');
+    if(h) h.setAttribute('aria-expanded','false');
+  });
+  if(!wasOpen){
+    cat.classList.add('open');
+    btn.setAttribute('aria-expanded','true');
+  }else{
+    btn.setAttribute('aria-expanded','false');
+  }
+}
+</script>
+</body>
+</html>
