@@ -6,7 +6,6 @@
 <title>SiteGen — Génère ton site en un message</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://js.puter.com/v2/"></script>
 <style>
   :root{
     --bg: #14151c;
@@ -56,10 +55,14 @@
   .msg.ai .bubble{ background:var(--panel); border:1px solid var(--line); border-bottom-left-radius:4px; }
   .msg.ai .bubble.error{ border-color:var(--bad); color:var(--bad); }
   .msg-label{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--muted); padding:0 4px; }
-  .thinking{ display:flex; gap:5px; align-items:center; padding:11px 13px; background:var(--panel); border:1px solid var(--line); border-radius:14px; border-bottom-left-radius:4px; width:fit-content; }
-  .thinking span{ width:6px; height:6px; border-radius:50%; background:var(--violet); animation: pulse 1.2s ease-in-out infinite; }
-  .thinking span:nth-child(2){ animation-delay:0.15s; }
-  .thinking span:nth-child(3){ animation-delay:0.3s; }
+  .status-bubble{ display:flex; flex-direction:column; gap:8px; padding:12px 14px; background:var(--panel); border:1px solid var(--line); border-radius:14px; border-bottom-left-radius:4px; width:fit-content; min-width:220px; }
+  .status-step{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); font-family:'JetBrains Mono', monospace; }
+  .status-step .icon{ width:14px; height:14px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .status-step.active{ color:var(--amber); }
+  .status-step.done{ color:var(--good); }
+  .status-step .dots span{ width:4px; height:4px; border-radius:50%; background:var(--amber); display:inline-block; margin-right:2px; animation: pulse 1.2s ease-in-out infinite; }
+  .status-step .dots span:nth-child(2){ animation-delay:0.15s; }
+  .status-step .dots span:nth-child(3){ animation-delay:0.3s; }
   @keyframes pulse{ 0%,80%,100%{ opacity:0.25; transform:scale(0.8);} 40%{ opacity:1; transform:scale(1);} }
   .composer{ flex-shrink:0; border-top:1px solid var(--line); background:var(--panel); padding:10px 12px calc(10px + env(safe-area-inset-bottom)); }
   .composer-inner{ display:flex; align-items:flex-end; gap:8px; background:var(--bg); border:1px solid var(--line); border-radius:14px; padding:8px 8px 8px 14px; }
@@ -95,7 +98,7 @@
 <body>
 <div class="app">
   <header>
-    <div class="logo"><span class="dot"></span>SiteGen<span class="sub">// v1</span></div>
+    <div class="logo"><span class="dot"></span>SiteGen<span class="sub">// v2</span></div>
     <div class="hdr-actions">
       <button class="icon-btn" id="downloadBtn" title="Télécharger" disabled>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
@@ -132,7 +135,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1305" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </button>
         </div>
-        <div class="hint">SiteGen — Lubumbashi, RDC · Propulsé par Puter.js</div>
+        <div class="hint">SiteGen — Lubumbashi, RDC · Propulsé par Groq</div>
       </div>
     </div>
     <div class="pane" id="previewPane">
@@ -168,11 +171,21 @@
   const newBtn = document.getElementById('newBtn');
   const tabs = document.querySelectorAll('.tab');
   const panes = { chat: document.getElementById('chatPane'), preview: document.getElementById('previewPane'), code: document.getElementById('codePane') };
-  let history = [];
   let currentHTML = '';
   let generating = false;
   let lastPrompt = '';
   let lastPublishedUrl = '';
+
+  // ---------- Init depuis localStorage ----------
+  try{
+    const savedHTML = localStorage.getItem('sitegen_last_html');
+    if(savedHTML){
+      currentHTML = savedHTML;
+      renderSite(savedHTML, 'site-precedent.html', false);
+    }
+  }catch(e){}
+
+  // ---------- Navigation tabs ----------
   tabs.forEach(t => {
     t.addEventListener('click', () => {
       tabs.forEach(x => x.classList.remove('active'));
@@ -185,6 +198,7 @@
     tabs.forEach(x => x.classList.toggle('active', x.dataset.tab === name));
     Object.entries(panes).forEach(([k,p]) => p.classList.toggle('show', k === name));
   }
+
   promptInput.addEventListener('input', () => {
     promptInput.style.height = 'auto';
     promptInput.style.height = Math.min(promptInput.scrollHeight, 110) + 'px';
@@ -193,6 +207,8 @@
     if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); }
   });
   sendBtn.addEventListener('click', send);
+
+  // ---------- Messages UI ----------
   function addMessage(role, text, isError){
     if(emptyState) emptyState.remove();
     const wrap = document.createElement('div');
@@ -209,21 +225,97 @@
     messagesEl.scrollTop = messagesEl.scrollHeight;
     return wrap;
   }
-  function addThinking(){
-    const wrap = document.createElement('div');
-    wrap.className = 'msg ai';
-    wrap.id = 'thinkingMsg';
-    const t = document.createElement('div');
-    t.className = 'thinking';
-    t.innerHTML = '<span></span><span></span><span></span>';
-    wrap.appendChild(t);
-    messagesEl.appendChild(wrap);
+
+  // ---------- Barre de progression 3 étapes ----------
+  const STEPS = [
+    { key: 'plan',   icon: '🧠', label: 'Analyse & plan' },
+    { key: 'code',   icon: '🏗️', label: 'Génération du code' },
+    { key: 'review', icon: '🔍', label: 'Vérification finale' }
+  ];
+  let statusWrap = null;
+  function startStatus(){
+    if(emptyState) emptyState.remove();
+    statusWrap = document.createElement('div');
+    statusWrap.className = 'msg ai';
+    statusWrap.id = 'statusMsg';
+    const bubble = document.createElement('div');
+    bubble.className = 'status-bubble';
+    STEPS.forEach(s => {
+      const row = document.createElement('div');
+      row.className = 'status-step';
+      row.id = 'step-' + s.key;
+      row.innerHTML = '<span class="icon">' + s.icon + '</span><span class="label">' + s.label + '</span>';
+      bubble.appendChild(row);
+    });
+    statusWrap.appendChild(bubble);
+    messagesEl.appendChild(statusWrap);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
-  function removeThinking(){
-    const t = document.getElementById('thinkingMsg');
-    if(t) t.remove();
+  function setStepState(key, state){
+    const row = document.getElementById('step-' + key);
+    if(!row) return;
+    row.classList.remove('active','done');
+    const label = row.querySelector('.label');
+    const icon = row.querySelector('.icon');
+    if(state === 'active'){
+      row.classList.add('active');
+      label.innerHTML = STEPS.find(s=>s.key===key).label + ' <span class="dots"><span></span><span></span><span></span></span>';
+    } else if(state === 'done'){
+      row.classList.add('done');
+      icon.textContent = '✓';
+      label.textContent = STEPS.find(s=>s.key===key).label;
+    } else {
+      icon.textContent = STEPS.find(s=>s.key===key).icon;
+      label.textContent = STEPS.find(s=>s.key===key).label;
+    }
   }
+  function endStatus(){
+    if(statusWrap){ statusWrap.remove(); statusWrap = null; }
+  }
+
+  // ---------- Clé API Groq ----------
+  function getGroqKey(){
+    let key = localStorage.getItem('sitegen_groq_key');
+    if(!key){
+      key = prompt("Colle ta clé API Groq (commence par gsk_) :", "");
+      if(key) localStorage.setItem('sitegen_groq_key', key.trim());
+    }
+    return key ? key.trim() : null;
+  }
+
+  // ---------- Appel Groq ----------
+  async function callGroq(messages, jsonMode){
+    const key = getGroqKey();
+    if(!key) throw new Error("Clé API Groq manquante");
+    const body = {
+      model: 'llama-3.3-70b-versatile',
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 8000
+    };
+    if(jsonMode) body.response_format = { type: 'json_object' };
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + key,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    if(res.status === 401){
+      localStorage.removeItem('sitegen_groq_key');
+      throw new Error("Clé Groq invalide, réessaie et recolle-la");
+    }
+    if(!res.ok){
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || ('Erreur Groq ' + res.status));
+    }
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    if(!content) throw new Error("Réponse vide de Groq");
+    return content;
+  }
+
   function extractHTML(raw){
     let s = raw.trim();
     const fenced = s.match(/```(?:html)?\s*([\s\S]*?)```/i);
@@ -232,170 +324,42 @@
     if(docMatch) s = docMatch[0];
     return s;
   }
-  async function generateSite(userPrompt){
-    const systemPrompt = "Tu es un générateur de sites web. Réponds UNIQUEMENT avec un document HTML complet et autonome (DOCTYPE, html, head avec styles CSS inline dans une balise style, body, et JS inline dans une balise script si besoin). N'utilise aucune ressource externe sauf des polices Google Fonts si utile. N'ajoute aucun texte, explication ou balise markdown avant ou après le code. Le design doit être moderne, soigné, et adapté au sujet demandé. Le site doit être responsive et bien s'afficher sur mobile.";
-    const messages = [{ role: 'system', content: systemPrompt }];
+  function extractJSON(raw){
+    let s = raw.trim();
+    const fenced = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if(fenced) s = fenced[1].trim();
+    try{ return JSON.parse(s); }
+    catch(e){
+      const m = s.match(/\{[\s\S]*\}/);
+      if(m){ try{ return JSON.parse(m[0]); }catch(e2){} }
+      throw new Error("Plan JSON illisible");
+    }
+  }
+
+  // ---------- Étape 1 : Plan + Design ----------
+  async function stepPlanDesign(userPrompt){
+    const sys = "Tu es un planificateur de sites web. À partir de la demande de l'utilisateur, réponds UNIQUEMENT avec un objet JSON (pas de texte autour, pas de markdown) contenant : { \"type_site\": string, \"sections\": [string], \"palette\": { \"primaire\": string(hex), \"secondaire\": string(hex), \"fond\": string(hex), \"texte\": string(hex) }, \"police\": string, \"fonctionnalites\": [string], \"ton\": string }. Sois précis et adapté au sujet demandé.";
+    const messages = [{ role: 'system', content: sys }];
     if(currentHTML){
-      messages.push({ role: 'user', content: 'Voici le site HTML actuel :\n\n' + currentHTML });
-      messages.push({ role: 'assistant', content: 'Compris, je garde ce site en mémoire pour le modifier selon tes prochaines instructions.' });
+      messages.push({ role: 'user', content: 'Site HTML actuel (résumé du contexte, ne pas reproduire) :\n' + currentHTML.slice(0, 3000) });
     }
     messages.push({ role: 'user', content: userPrompt });
-    const response = await puter.ai.chat(messages, { model: 'openai/gpt-5-nano' });
-    const raw = response?.message?.content || '';
-    if(!raw) throw new Error("Réponse vide de l'IA");
+    const raw = await callGroq(messages, true);
+    return extractJSON(raw);
+  }
+
+  // ---------- Étape 2 : Génération du code ----------
+  async function stepCode(userPrompt, plan){
+    const sys = "Tu es un générateur de sites web. Réponds UNIQUEMENT avec un document HTML complet et autonome (DOCTYPE, html, head avec styles CSS inline dans une balise style, body, et JS inline dans une balise script si besoin). N'utilise aucune ressource externe sauf des polices Google Fonts si utile. N'ajoute aucun texte, explication ou balise markdown avant ou après le code. Le site doit être responsive et bien s'afficher sur mobile. Respecte scrupuleusement le plan fourni (sections, palette de couleurs en hex, police, fonctionnalités, ton).";
+    const messages = [{ role: 'system', content: sys }];
+    if(currentHTML){
+      messages.push({ role: 'user', content: 'Voici le site HTML actuel à modifier selon la nouvelle demande :\n\n' + currentHTML });
+      messages.push({ role: 'assistant', content: 'Compris, je pars de ce site pour appliquer les changements demandés.' });
+    }
+    messages.push({ role: 'user', content: 'Demande : ' + userPrompt + '\n\nPlan à respecter (JSON) :\n' + JSON.stringify(plan) });
+    const raw = await callGroq(messages, false);
     return extractHTML(raw);
   }
-  function renderSite(html, label){
-    currentHTML = html;
-    previewEmpty.style.display = 'none';
-    previewFrame.classList.remove('loaded');
-    previewFrame.srcdoc = html;
-    previewFrame.onload = () => previewFrame.classList.add('loaded');
-    codeView.textContent = html;
-    urlFake.textContent = label || 'site-genere.html';
-    downloadBtn.disabled = false;
-    publishBtn.disabled = false;
-    orderBtn.disabled = false;
-    saveHistoryLocal();
-  }
-  function saveHistoryLocal(){
-    try{
-      localStorage.setItem('sitegen_last_html', currentHTML);
-      localStorage.setItem('sitegen_history', JSON.stringify(history));
-    }catch(e){}
-  }
-  async function send(){
-    const val = promptInput.value.trim();
-    if(!val || generating) return;
-    promptInput.value = '';
-    promptInput.style.height = 'auto';
-    addMessage('user', val);
-    history.push({role:'user', content: val});
-    lastPrompt = val;
-    lastPublishedUrl = '';
-    addThinking();
-    generating = true;
-    sendBtn.disabled = true;
-    try{
-      const html = await generateSite(val);
-      removeThinking();
-      const label = currentHTML ? 'Site mis à jour ✓' : 'Site généré ✓';
-      addMessage('ai', label + " — regarde l'onglet Aperçu.");
-      renderSite(html, val.slice(0,40));
-      if(window.innerWidth < 860) goToTab('preview');
-    }catch(err){
-      removeThinking();
-      addMessage('ai', 'Échec de la génération : ' + err.message + '. Réessaie avec une description plus simple.', true);
-    }finally{
-      generating = false;
-      sendBtn.disabled = false;
-    }
-  }
-  downloadBtn.addEventListener('click', () => {
-    if(!currentHTML) return;
-    const blob = new Blob([currentHTML], {type:'text/html'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'site-genere.html';
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-  function utf8ToBase64(str){
-    return btoa(unescape(encodeURIComponent(str)));
-  }
-  publishBtn.addEventListener('click', async () => {
-    if(!currentHTML) return;
-    let owner = localStorage.getItem('sitegen_gh_owner');
-    let repo = localStorage.getItem('sitegen_gh_repo');
-    let token = localStorage.getItem('sitegen_gh_token');
-    if(!owner || !repo || !token){
-      owner = prompt("Ton nom d'utilisateur GitHub :", owner || '');
-      if(!owner) return;
-      repo = prompt('Nom du repository GitHub Pages (ex: Sitgen) :', repo || 'Sitgen');
-      if(!repo) return;
-      token = prompt('Colle ton token GitHub (garde-le secret) :', '');
-      if(!token) return;
-      localStorage.setItem('sitegen_gh_owner', owner);
-      localStorage.setItem('sitegen_gh_repo', repo);
-      localStorage.setItem('sitegen_gh_token', token);
-    }
-    publishBtn.disabled = true;
-    addThinking();
-    try{
-      const filename = 'sites/site-' + Date.now() + '.html';
-      const content = utf8ToBase64(currentHTML);
-      const res = await fetch('https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + filename, {
-        method: 'PUT',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Accept': 'application/vnd.github+json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message: 'Publier un site depuis SiteGen', content: content })
-      });
-      removeThinking();
-      if(!res.ok){
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || ('Erreur ' + res.status));
-      }
-      const liveUrl = 'https://' + owner + '.github.io/' + repo + '/' + filename;
-      lastPublishedUrl = liveUrl;
-      addMessage('ai', 'Site publié ✓ Voici ton lien : ' + liveUrl);
-    }catch(err){
-      removeThinking();
-      addMessage('ai', 'Échec de la publication : ' + err.message, true);
-      localStorage.removeItem('sitegen_gh_token');
-    }finally{
-      publishBtn.disabled = false;
-    }
-  });
-  orderBtn.addEventListener('click', () => {
-    if(!currentHTML) return;
-    let message = 'Bonjour, je souhaite commander ce site créé avec SiteGen.\n\n';
-    message += 'Description du site : ' + (lastPrompt || 'non précisée') + '\n\n';
-    if(lastPublishedUrl){
-      message += 'Aperçu en ligne : ' + lastPublishedUrl + '\n\n';
-    }
-    message += 'Merci de me recontacter pour finaliser la commande.';
-    const waUrl = 'https://wa.me/243979312394?text=' + encodeURIComponent(message);
-    window.open(waUrl, '_blank');
-  });
-  newBtn.addEventListener('click', () => {
-    if(!confirm('Effacer le site actuel et recommencer ?')) return;
-    currentHTML = '';
-    history = [];
-    messagesEl.innerHTML = '';
-    const div = document.createElement('div');
-    div.className = 'empty-state';
-    div.id = 'emptyState';
-    div.innerHTML = '<div class="glyph">&gt; décris le site que tu veux<span class="caret"></span></div><h2>Génère un site en un message</h2><p>Écris ce que tu veux construire — un site vitrine, une landing page, un portfolio — et le site apparaît à droite. Tu peux ensuite demander des modifications.</p>';
-    messagesEl.appendChild(div);
-    previewFrame.classList.remove('loaded');
-    previewFrame.srcdoc = '';
-    previewEmpty.style.display = 'flex';
-    codeView.textContent = "// Le code généré s'affichera ici.";
-    urlFake.textContent = 'en attente de génération...';
-    downloadBtn.disabled = true;
-    publishBtn.disabled = true;
-    orderBtn.disabled = true;
-    localStorage.removeItem('sitegen_last_html');
-    localStorage.removeItem('sitegen_history');
-    goToTab('chat');
-  });
-  try{
-    const savedHTML = localStorage.getItem('sitegen_last_html');
-    const savedHistory = localStorage.getItem('sitegen_history');
-    if(savedHistory) history = JSON.parse(savedHistory);
-    if(savedHTML){
-      renderSite(savedHTML, 'session précédente');
-      if(history.length){
-        history.forEach(m => { if(m.role === 'user') addMessage('user', m.content); });
-        addMessage('ai', 'Site restauré depuis ta dernière session.');
-      }
-    }
-  }catch(e){}
-})();
-</script>
-</body>
-    </html>
+
+  // ---------- Étape 3 : Vérification / correction ----------
+          
