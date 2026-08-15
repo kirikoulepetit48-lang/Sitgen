@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SiteGen — Génère ton site en un message</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #14151c;
+    --panel: #1b1d27;
+    --panel-2: #21232f;
+    --line: #2c2f3d;
+    --amber: #e8a33d;
+    --amber-dim: #e8a33d33;
+    --violet: #7c6fea;
+    --text: #edeae3;
+    --muted: #8a8b98;
+    --good: #4fd1a5;
+    --bad: #e8636b;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{height:100%;}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:'Inter', sans-serif; overflow:hidden; }
+  ::selection{ background:var(--amber-dim); }
+  .app{ display:flex; flex-direction:column; height:100vh; height:100dvh; }
+  header{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line); background:var(--panel); flex-shrink:0; z-index:10; }
+  .logo{ display:flex; align-items:center; gap:8px; font-family:'Sora', sans-serif; font-weight:800; font-size:18px; letter-spacing:-0.02em; }
+  .logo .dot{ width:9px; height:9px; border-radius:2px; background:var(--amber); transform:rotate(45deg); flex-shrink:0; }
+  .logo span.sub{ color:var(--muted); font-weight:500; font-size:12px; font-family:'JetBrains Mono', monospace; margin-left:2px;}
+  .hdr-actions{ display:flex; gap:8px; }
+  .icon-btn{ background:var(--panel-2); border:1px solid var(--line); color:var(--text); width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .icon-btn:active{ transform: scale(0.94); }
+  .icon-btn:disabled{ opacity:0.35; }
+  .tabs{ display:flex; background:var(--panel); border-bottom:1px solid var(--line); flex-shrink:0; }
+  .tab{ flex:1; text-align:center; padding:11px 0; font-size:13px; font-weight:600; color:var(--muted); border-bottom:2px solid transparent; cursor:pointer; font-family:'Sora', sans-serif; }
+  .tab.active{ color:var(--text); border-bottom-color:var(--amber); }
+  main{ flex:1; display:flex; min-height:0; position:relative; }
+  .pane{ flex:1; min-width:0; display:none; flex-direction:column; min-height:0; }
+  .pane.show{ display:flex; }
+  #chatPane{ background:var(--bg); }
+  .messages{ flex:1; overflow-y:auto; padding:18px 16px 12px; display:flex; flex-direction:column; gap:16px; }
+  .empty-state{ margin:auto; text-align:center; max-width:320px; color:var(--muted); padding:0 20px; }
+  .empty-state .glyph{ font-family:'JetBrains Mono', monospace; font-size:13px; color:var(--amber); border:1px solid var(--line); background:var(--panel); border-radius:10px; padding:14px; margin-bottom:16px; text-align:left; line-height:1.7; }
+  .empty-state .glyph .caret{ display:inline-block; width:7px; height:14px; background:var(--amber); margin-left:2px; vertical-align:-2px; animation: blink 1s step-end infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+  .empty-state h2{ font-family:'Sora', sans-serif; font-size:17px; color:var(--text); margin:0 0 6px; }
+  .empty-state p{ font-size:13.5px; line-height:1.5; margin:0; }
+  .msg{ display:flex; flex-direction:column; gap:6px; max-width:88%; }
+  .msg.user{ align-self:flex-end; align-items:flex-end; }
+  .msg.ai{ align-self:flex-start; align-items:flex-start; }
+  .bubble{ padding:10px 13px; border-radius:14px; font-size:14px; line-height:1.5; }
+  .msg.user .bubble{ background:var(--amber); color:#1a1305; border-bottom-right-radius:4px; font-weight:500; }
+  .msg.ai .bubble{ background:var(--panel); border:1px solid var(--line); border-bottom-left-radius:4px; }
+  .msg.ai .bubble.error{ border-color:var(--bad); color:var(--bad); }
+  .msg-label{ font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--muted); padding:0 4px; }
+  .status-bubble{ display:flex; flex-direction:column; gap:8px; padding:12px 14px; background:var(--panel); border:1px solid var(--line); border-radius:14px; border-bottom-left-radius:4px; width:fit-content; min-width:220px; }
+  .status-step{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); font-family:'JetBrains Mono', monospace; }
+  .status-step .icon{ width:14px; height:14px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .status-step.active{ color:var(--amber); }
+  .status-step.done{ color:var(--good); }
+  .status-step .dots span{ width:4px; height:4px; border-radius:50%; background:var(--amber); display:inline-block; margin-right:2px; animation: pulse 1.2s ease-in-out infinite; }
+  .status-step .dots span:nth-child(2){ animation-delay:0.15s; }
+  .status-step .dots span:nth-child(3){ animation-delay:0.3s; }
+  @keyframes pulse{ 0%,80%,100%{ opacity:0.25; transform:scale(0.8);} 40%{ opacity:1; transform:scale(1);} }
+  .composer{ flex-shrink:0; border-top:1px solid var(--line); background:var(--panel); padding:10px 12px calc(10px + env(safe-area-inset-bottom)); }
+  .composer-inner{ display:flex; align-items:flex-end; gap:8px; background:var(--bg); border:1px solid var(--line); border-radius:14px; padding:8px 8px 8px 14px; }
+  .composer-inner:focus-within{ border-color:var(--amber); }
+  textarea#promptInput{ flex:1; background:none; border:none; outline:none; color:var(--text); font-family:'Inter', sans-serif; font-size:14.5px; line-height:1.4; resize:none; max-height:110px; padding:6px 0; }
+  textarea#promptInput::placeholder{ color:var(--muted); }
+  #sendBtn{ background:var(--amber); border:none; width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+  #sendBtn:disabled{ background:var(--line); }
+  #sendBtn:active:not(:disabled){ transform:scale(0.92); }
+  .hint{ font-size:11px; color:var(--muted); text-align:center; margin-top:7px; font-family:'JetBrains Mono', monospace; }
+  #previewPane{ background:#0d0e13; }
+  .preview-toolbar{ display:flex; align-items:center; justify-content:space-between; padding:9px 12px; background:var(--panel); border-bottom:1px solid var(--line); flex-shrink:0; }
+  .preview-toolbar .url-fake{ font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--muted); background:var(--bg); border:1px solid var(--line); border-radius:7px; padding:5px 10px; flex:1; margin-right:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .preview-wrap{ flex:1; position:relative; min-height:0; }
+  iframe#previewFrame{ width:100%; height:100%; border:none; background:#fff; opacity:0; transform:scale(0.98); transition: opacity 0.5s ease, transform 0.5s ease; }
+  iframe#previewFrame.loaded{ opacity:1; transform:scale(1); }
+  .preview-empty{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; color:var(--muted); font-size:13.5px; padding:0 30px; text-align:center; }
+  .preview-empty svg{ opacity:0.5; }
+  pre#codeView{ flex:1; margin:0; padding:16px; overflow:auto; font-family:'JetBrains Mono', monospace; font-size:12px; line-height:1.6; color:#c8cad6; white-space:pre-wrap; word-break:break-word; background:#0d0e13; }
+  @media (min-width:860px){
+    .tabs{ display:none; }
+    main{ flex-direction:row; }
+    .pane{ display:flex !important; }
+    #chatPane{ width:380px; flex-shrink:0; border-right:1px solid var(--line); }
+    #previewPane{ flex:1; }
+    #codePane{ display:none !important; }
+    #codePane.show{ display:flex !important; }
+  }
+  ::-webkit-scrollbar{ width:8px; height:8px; }
+  ::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
+  .modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; }
+  .modal-box{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:20px; width:100%; max-width:340px; }
+  .modal-box h3{ font-family:'Sora', sans-serif; font-size:16px; margin:0 0 8px; }
+  .modal-box p{ font-size:13px; color:var(--muted); margin:0 0 14px; line-height:1.5; }
+  .modal-box input{ width:100%; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:11px 12px; color:var(--text); font-size:14px; font-family:'JetBrains Mono', monospace; outline:none; margin-bottom:14px; }
+  .modal-box input:focus{ border-color:var(--amber); }
+  .modal-actions{ display:flex; gap:8px; }
+  .modal-actions button{ flex:1; padding:11px; border-radius:10px; border:none; font-weight:600; font-size:14px; cursor:pointer; font-family:'Sora', sans-serif; }
+  .modal-btn-cancel{ background:var(--panel-2); color:var(--muted); border:1px solid var(--line) !important; }
+  .modal-btn-confirm{ background:var(--amber); color:#1a1305; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo"><span class="dot"></span>SiteGen<span class="sub">// v2</span></div>
+    <div class="hdr-actions">
+      <button class="icon-btn" id="downloadBtn" title="Télécharger" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+      </button>
+      <button class="icon-btn" id="publishBtn" title="Publier" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9m0 0l-4 4m4-4l4 4M4 4h16"/></svg>
+      </button>
+      <button class="icon-btn" id="orderBtn" title="Commander ce site" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+      </button>
+      <button class="icon-btn" id="newBtn" title="Nouveau projet">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+  </header>
+  <div class="tabs">
+    <div class="tab active" data-tab="chat">Chat</div>
+    <div class="tab" data-tab="preview">Aperçu</div>
+    <div class="tab" data-tab="code">Code</div>
+  </div>
+  <main>
+    <div class="pane show" id="chatPane">
+      <div class="messages" id="messages">
+        <div class="empty-state" id="emptyState">
+          <div class="glyph">&gt; décris le site que tu veux<span class="caret"></span></div>
+          <h2>Génère un site en un message</h2>
+          <p>Écris ce que tu veux construire — un site vitrine, une landing page, un portfolio — et le site apparaît à droite. Tu peux ensuite demander des modifications.</p>
+        </div>
+      </div>
+      <div class="composer">
+        <div class="composer-inner">
+          <textarea id="promptInput" rows="1" placeholder="Ex : un site vitrine pour un restaurant italien..."></textarea>
+          <button id="sendBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1305" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+        <div class="hint">SiteGen — Lubumbashi, RDC · Propulsé par Groq</div>
+      </div>
+    </div>
+    <div class="pane" id="previewPane">
+      <div class="preview-toolbar">
+        <div class="url-fake" id="urlFake">en attente de génération...</div>
+      </div>
+      <div class="preview-wrap">
+        <div class="preview-empty" id="previewEmpty">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+          <div>Ton site apparaîtra ici après ta première description.</div>
+        </div>
+        <iframe id="previewFrame"></iframe>
+      </div>
+    </div>
+    <div class="pane" id="codePane">
+      <pre id="codeView">// Le code généré s'affichera ici.</pre>
+    </div>
+  </main>
+</div>
+<script>
+(function(){
+  const messagesEl = document.getElementById('messages');
+  const emptyState = document.getElementById('emptyState');
+  const promptInput = document.getElementById('promptInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const previewFrame = document.getElementById('previewFrame');
+  const previewEmpty = document.getElementById('previewEmpty');
+  const codeView = document.getElementById('codeView');
+  const urlFake = document.getElementById('urlFake');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const publishBtn = document.getElementById('publishBtn');
+  const orderBtn = document.getElementById('orderBtn');
+  const newBtn = document.getElementById('newBtn');
+  const tabs = document.querySelectorAll('.tab');
+  const panes = { chat: document.getElementById('chatPane'), preview: document.getElementById('previewPane'), code: document.getElementById('codePane') };
+  let currentHTML = '';
+  let generating = false;
+  let lastPrompt = '';
+  let lastPublishedUrl = '';
+
+  // ---------- Init depuis localStorage ----------
+  try{
+    const savedHTML = localStorage.getItem('sitegen_last_html');
+    if(savedHTML){
+      currentHTML = savedHTML;
+      renderSite(savedHTML, 'site-precedent.html', false);
+    }
+  }catch(e){}
+
+  // ---------- Navigation tabs ----------
+  tabs.forEach(t => {
+    t.addEventListener('click', () => {
+      tabs.forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      Object.values(panes).forEach(p => p.classList.remove('show'));
+      panes[t.dataset.tab].classList.add('show');
+    });
+  });
+  function goToTab(name){
+    tabs.forEach(x => x.classList.toggle('active', x.dataset.tab === name));
+    Object.entries(panes).forEach(([k,p]) => p.classList.toggle('show', k === name));
+  }
+
+  promptInput.addEventListener('input', () => {
+    promptInput.style.height = 'auto';
+    promptInput.style.height = Math.min(promptInput.scrollHeight, 110) + 'px';
+  });
+  promptInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+  });
+  sendBtn.addEventListener('click', send);
+
+  // ---------- Messages UI ----------
+  function addMessage(role, text, isError){
+    if(emptyState) emptyState.remove();
+    const wrap = document.createElement('div');
+    wrap.className = 'msg ' + (role === 'user' ? 'user' : 'ai');
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = role === 'user' ? 'toi' : 'sitegen';
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble' + (isError ? ' error' : '');
+    bubble.textContent = text;
+    wrap.appendChild(label);
+    wrap.appendChild(bubble);
+    messagesEl.appendChild(wrap);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return wrap;
+  }
+
+  // ---------- Barre de progression 3 étapes ----------
+  const STEPS = [
+    { key: 'plan',   icon: '🧠', label: 'Analyse & plan' },
+    { key: 'code',   icon: '🏗️', label: 'Génération du code' },
+    { key: 'review', icon: '🔍', label: 'Vérification finale' }
+  ];
+  let statusWrap = null;
+  function startStatus(){
+    if(emptyState) emptyState.remove();
+    statusWrap = document.createElement('div');
+    statusWrap.className = 'msg ai';
+    statusWrap.id = 'statusMsg';
+    const bubble = document.createElement('div');
+    bubble.className = 'status-bubble';
+    STEPS.forEach(s => {
+      const row = document.createElement('div');
+      row.className = 'status-step';
+      row.id = 'step-' + s.key;
+      row.innerHTML = '<span class="icon">' + s.icon + '</span><span class="label">' + s.label + '</span>';
+      bubble.appendChild(row);
+    });
+    statusWrap.appendChild(bubble);
+    messagesEl.appendChild(statusWrap);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+  function setStepState(key, state){
+    const row = document.getElementById('step-' + key);
+    if(!row) return;
+    row.classList.remove('active','done');
+    const label = row.querySelector('.label');
+    const icon = row.querySelector('.icon');
+    if(state === 'active'){
+      row.classList.add('active');
+      label.innerHTML = STEPS.find(s=>s.key===key).label + ' <span class="dots"><span></span><span></span><span></span></span>';
+    } else if(state === 'done'){
+      row.classList.add('done');
+      icon.textContent = '✓';
+      label.textContent = STEPS.find(s=>s.key===key).label;
+    } else {
+      icon.textContent = STEPS.find(s=>s.key===key).icon;
+      label.textContent = STEPS.find(s=>s.key===key).label;
+    }
+  }
+  function endStatus(){
+    if(statusWrap){ statusWrap.remove(); statusWrap = null; }
+  }
+
+  // ---------- Clé API Groq ----------
+  // ---------- Modal générique (remplace prompt/alert, bloqués par Chrome mobile après plusieurs appels) ----------
+  function askModal(title, description, placeholder){
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML =
+        '<div class="modal-box">' +
+          '<h3>' + title + '</h3>' +
+          '<p>' + description + '</p>' +
+          '<input type="text" id="modalInput" placeholder="' + placeholder + '" autocomplete="off" autocapitalize="off" spellcheck="false">' +
+          '<div class="modal-actions">' +
+            '<button class="modal-btn-cancel" id="modalCancel">Annuler</button>' +
+            '<button class="modal-btn-confirm" id="modalConfirm">Valider</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(overlay);
+      const input = overlay.querySelector('#modalInput');
+      input.focus();
+      function close(value){
+        overlay.remove();
+        resolve(value);
+      }
+      overlay.querySelector('#modalCancel').addEventListener('click', () => close(null));
+      overlay.querySelector('#modalConfirm').addEventListener('click', () => close(input.value.trim()));
+      input.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter'){ e.preventDefault(); close(input.value.trim()); }
+      });
+    });
+  }
+
+  async function getGroqKey(){
+    let key = localStorage.getItem('sitegen_groq_key');
+    if(!key){
+      key = await askModal('Clé API Groq', "Colle ta clé API Groq (gratuite sur console.groq.com), elle commence par gsk_", 'gsk_...');
+      if(key) localStorage.setItem('sitegen_groq_key', key);
+    }
+    return key || null;
+  }
+
+  // ---------- Appel Groq ----------
+  async function callGroq(messages, jsonMode){
+    const key = await getGroqKey();
+    if(!key) throw new Error("Clé API Groq manquante — colle ta clé pour continuer");
+    const body = {
+      model: 'llama-3.3-70b-versatile',
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 8000
+    };
+    if(jsonMode) body.response_format = { type: 'json_object' };
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + key,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    if(res.status === 401){
+      localStorage.removeItem('sitegen_groq_key');
+      throw new Error("Clé Groq invalide, réessaie et recolle-la");
+    }
+    if(!res.ok){
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || ('Erreur Groq ' + res.status));
+    }
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    if(!content) throw new Error("Réponse vide de Groq");
+    return content;
+  }
+
+  function extractHTML(raw){
+    let s = raw.trim();
+    const fenced = s.match(/```(?:html)?\s*([\s\S]*?)```/i);
+    if(fenced) s = fenced[1].trim();
+    const docMatch = s.match(/<!DOCTYPE[\s\S]*<\/html>/i) || s.match(/<html[\s\S]*<\/html>/
