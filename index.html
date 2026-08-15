@@ -156,6 +156,9 @@
   </main>
 </div>
 <script>
+window.addEventListener('error', function(e){
+  alert('Erreur JS détectée :\n' + e.message + '\nLigne ' + e.lineno);
+});
 (function(){
   const messagesEl = document.getElementById('messages');
   const emptyState = document.getElementById('emptyState');
@@ -357,9 +360,4 @@
       messages.push({ role: 'assistant', content: 'Compris, je pars de ce site pour appliquer les changements demandés.' });
     }
     messages.push({ role: 'user', content: 'Demande : ' + userPrompt + '\n\nPlan à respecter (JSON) :\n' + JSON.stringify(plan) });
-    const raw = await callGroq(messages, false);
-    return extractHTML(raw);
-  }
-
-  // ---------- Étape 3 : Vérification / correction ----------
-          
+    const raw = await cal
